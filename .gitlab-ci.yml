@@ -1,0 +1,38 @@
+image: mcr.microsoft.com/dotnet/sdk:7.0
+
+stages:
+  - build
+
+variables:
+  PROJECT_DIR: ServerProxy
+  RELEASE_DIR: ServerProxy/bin/Release/net7.0-windows
+  ARTIFACTS_DIR: ServerProxy/bin/Release/net7.0-windows
+
+build-win-x64:
+  stage: build
+  script:
+    - cd $PROJECT_DIR
+    - dotnet publish -r win-x64 -c Release /p:EnableWindowsTargeting=true
+  artifacts:
+    paths:
+      - $ARTIFACTS_DIR/win-x64/publish
+
+build-win-arm64:
+  stage: build
+  script:
+    - cd $PROJECT_DIR
+    - dotnet publish -r win-arm64 -c Release /p:EnableWindowsTargeting=true
+  artifacts:
+    paths:
+      - $ARTIFACTS_DIR/win-arm64/publish
+
+release:
+  stage: build
+  script:
+    - echo "Uploading artifacts to release"
+  dependencies:
+    - build-win-x64
+    - build-win-arm64
+  only:
+    - tags
+
