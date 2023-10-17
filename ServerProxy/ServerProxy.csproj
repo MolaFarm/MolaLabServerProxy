@@ -2,16 +2,19 @@
 
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
-		<TargetFramework>net6.0-windows</TargetFramework>
+		<TargetFramework>net7.0-windows</TargetFramework>
 		<Nullable>enable</Nullable>
-		<UseWindowsForms>true</UseWindowsForms>
+		<UseWindowsForms>True</UseWindowsForms>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<PublishAot>true</PublishAot>
+		<_SuppressWinFormsTrimError>true</_SuppressWinFormsTrimError>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Ae.Dns.Client" Version="2.0.0" />
 		<PackageReference Include="Ae.Dns.Server" Version="2.0.0" />
 		<PackageReference Include="System.ServiceProcess.ServiceController" Version="7.0.1" />
+		<PackageReference Include="WinFormsComInterop" Version="0.4.3" />
 	</ItemGroup>
 
 </Project>
