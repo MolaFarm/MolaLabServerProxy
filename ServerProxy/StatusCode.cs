@@ -1,9 +1,8 @@
-﻿namespace ServerProxy
+﻿namespace ServerProxy;
+
+public enum Status
 {
-    public enum Status
-    {
-        Healthy,
-        Unhealty,
-        Starting
-    }
+    Healthy,
+    Unhealty,
+    Starting
 }

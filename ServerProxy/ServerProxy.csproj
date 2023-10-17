@@ -1,17 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net6.0-windows</TargetFramework>
-    <Nullable>enable</Nullable>
-    <UseWindowsForms>true</UseWindowsForms>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net6.0-windows</TargetFramework>
+		<Nullable>enable</Nullable>
+		<UseWindowsForms>true</UseWindowsForms>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Ae.Dns.Client" Version="2.0.0" />
-    <PackageReference Include="Ae.Dns.Server" Version="2.0.0" />
-    <PackageReference Include="System.ServiceProcess.ServiceController" Version="7.0.1" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Ae.Dns.Client" Version="2.0.0" />
+		<PackageReference Include="Ae.Dns.Server" Version="2.0.0" />
+		<PackageReference Include="System.ServiceProcess.ServiceController" Version="7.0.1" />
+	</ItemGroup>
 
 </Project>
