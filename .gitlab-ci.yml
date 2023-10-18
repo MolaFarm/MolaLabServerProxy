@@ -2,6 +2,7 @@ image: host.docker.internal:5000/bigsaltyfishes/windows-2022-runner:dotnet7.0
 
 stages:
   - build
+  - publish
 
 variables:
   PROJECT_DIR: ServerProxy
@@ -16,9 +17,11 @@ build-win-x64:
   script:
     - cd $PROJECT_DIR
     - dotnet publish -r win-x64 -c Release /p:EnableWindowsTargeting=true
+    - Add-Content -Path "JOBID64" -Value "$CI_JOB_ID"
   artifacts:
     paths:
       - $ARTIFACTS_DIR/win-x64/publish
+      - $PROJECT_DIR/JOBID64
 
 build-win-arm64:
   stage: build
@@ -28,17 +31,23 @@ build-win-arm64:
   script:
     - cd $PROJECT_DIR
     - dotnet publish -r win-arm64 -c Release /p:EnableWindowsTargeting=true
+    - Add-Content -Path "JOBIDAA64" -Value "$CI_JOB_ID"
   artifacts:
     paths:
       - $ARTIFACTS_DIR/win-arm64/publish
+      - $PROJECT_DIR/JOBIDAA64
 
-release:
-  stage: build
-  script:
-    - echo "Uploading artifacts to release"
-  dependencies:
-    - build-win-x64
-    - build-win-arm64
-  only:
-    - tags
-
+publish:
+    image: alpine:latest
+    stage: publish
+    dependencies:
+      - build-win-x64
+      - build-win-arm64
+    only:
+      - tags
+    script:
+      - sed -i 's/dl-cdn.alpinelinux.org/cernet.mirrors.ustc.edu.cn/g' /etc/apk/repositories
+      - apk update && apk add curl
+      - curl --location --output /usr/local/bin/release-cli "https://gitlab.com/api/v4/projects/gitlab-org%2Frelease-cli/packages/generic/release-cli/latest/release-cli-linux-amd64"
+      - chmod +x /usr/local/bin/release-cli
+      - release-cli create --name "Release $CI_COMMIT_SHA" --tag-name $CI_COMMIT_TAG  --assets-link "[{\"name\":\"Win64\",\"url\":\"http://IP_ADDRESS_START_HERE.38:31080/ShadiaoLeYuan/ServerProxy/-/jobs/$(cat $PROJECT_DIR/JOBID64|sed "s/\r//g")/artifacts/download\",\"link_type\":\"package\"}, {\"name\":\"ARM64\",\"url\":\"http://IP_ADDRESS_START_HERE.38:31080/ShadiaoLeYuan/ServerProxy/-/jobs/$(cat $PROJECT_DIR/JOBIDAA64|sed "s/\r//g")/artifacts/download\",\"link_type\":\"package\"}]"
