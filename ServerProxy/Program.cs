@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using WinFormsComInterop;
 
 namespace ServerProxy;
 
@@ -12,7 +13,7 @@ internal static class Program
     {
         // To customize application configuration such as set high DPI settings or default font,
         // see https://aka.ms/applicationconfiguration.
-        ComWrappers.RegisterForMarshalling(WinFormsComInterop.WinFormsComWrappers.Instance);
+        ComWrappers.RegisterForMarshalling(WinFormsComWrappers.Instance);
         ApplicationConfiguration.Initialize();
         Application.Run(new Form1());
     }

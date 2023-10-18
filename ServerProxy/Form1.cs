@@ -2,26 +2,30 @@
 
 public partial class Form1 : Form
 {
-    private static NotifyIcon taskbarIcon;
-    private static Proxy proxy;
+    private static NotifyIcon _taskbarIcon;
+    private static Proxy _proxy;
 
     public Form1()
     {
         // Component initialization
         InitializeComponent();
-        taskbarIcon = new NotifyIcon();
-        taskbarIcon.Icon = Icon;
-        taskbarIcon.Visible = true;
-        taskbarIcon.ContextMenuStrip = new ContextMenuStrip();
-        taskbarIcon.ContextMenuStrip.Items.Add("退出", null, (s, e) => OnExit());
+        _taskbarIcon = new NotifyIcon();
+        _taskbarIcon.Icon = Icon;
+        _taskbarIcon.Visible = true;
+        _taskbarIcon.ContextMenuStrip = new ContextMenuStrip();
+        _taskbarIcon.ContextMenuStrip.Items.Add("退出", null, (s, e) => OnExit());
+
+        // Check for update
+        var updater = new Updater();
+        updater.Check("http://IP_ADDRESS_START_HERE.38:31080");
 
         // Install Certificate
         CertificateUtil.Install();
 
         // Create Proxy
         SetStatus(Status.Starting);
-        proxy = new Proxy("https://114.132.172.176/");
-        _ = Task.Run(proxy.StartProxy);
+        _proxy = new Proxy("https://114.132.172.176/");
+        _ = Task.Run(_proxy.StartProxy);
     }
 
     // Show a notification with the specified title, message, and icon.
@@ -37,7 +41,7 @@ public partial class Form1 : Form
     //     The icon to be displayed in the notification.
     public static void ShowNotification(string title, string message, ToolTipIcon icon)
     {
-        taskbarIcon.ShowBalloonTip(1000, title, message, icon);
+        _taskbarIcon.ShowBalloonTip(1000, title, message, icon);
     }
 
     // Sets the status of the service.
@@ -63,7 +67,7 @@ public partial class Form1 : Form
                 break;
         }
 
-        taskbarIcon.Text = iconText;
+        _taskbarIcon.Text = iconText;
     }
 
     protected override void OnShown(EventArgs e)
@@ -74,8 +78,14 @@ public partial class Form1 : Form
 
     private static void OnExit()
     {
-        taskbarIcon.Dispose();
-        if (Proxy.HnsOriginalStatus.IsStarted) proxy.ServiceRestore();
+        _taskbarIcon.Dispose();
+        if (Proxy.HnsOriginalStatus.IsStarted) _proxy.ServiceRestore();
         Environment.Exit(0);
+    }
+
+    ~Form1()
+    {
+        _taskbarIcon.Dispose();
+        if (Proxy.HnsOriginalStatus.IsStarted) _proxy.ServiceRestore();
     }
 }

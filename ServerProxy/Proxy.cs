@@ -23,7 +23,7 @@ internal class Proxy
 
     public Proxy(string address)
     {
-        this._address = address;
+        _address = address;
         _sharedAccessController = new ServiceController("SharedAccess");
         _hnsController = new ServiceController("hns");
     }

@@ -1,20 +1,24 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<OutputType>WinExe</OutputType>
-		<TargetFramework>net7.0-windows</TargetFramework>
-		<Nullable>enable</Nullable>
-		<UseWindowsForms>True</UseWindowsForms>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<PublishAot>true</PublishAot>
-		<_SuppressWinFormsTrimError>true</_SuppressWinFormsTrimError>
-	</PropertyGroup>
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net7.0-windows</TargetFramework>
+        <Nullable>enable</Nullable>
+        <UseWindowsForms>True</UseWindowsForms>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <PublishAot>true</PublishAot>
+        <_SuppressWinFormsTrimError>true</_SuppressWinFormsTrimError>
+    </PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="Ae.Dns.Client" Version="2.0.0" />
-		<PackageReference Include="Ae.Dns.Server" Version="2.0.0" />
-		<PackageReference Include="System.ServiceProcess.ServiceController" Version="7.0.1" />
-		<PackageReference Include="WinFormsComInterop" Version="0.4.3" />
-	</ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Ae.Dns.Client" Version="2.0.0"/>
+        <PackageReference Include="Ae.Dns.Server" Version="2.0.0"/>
+        <PackageReference Include="GitVersion.MsBuild" Version="5.12.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="System.ServiceProcess.ServiceController" Version="7.0.1"/>
+        <PackageReference Include="WinFormsComInterop" Version="0.4.3"/>
+    </ItemGroup>
 
 </Project>
