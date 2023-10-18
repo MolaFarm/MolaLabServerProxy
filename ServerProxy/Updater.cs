@@ -10,12 +10,11 @@ public class VersionInfo
 {
     public string? CommitSha;
     public DateTime ReleaseDate;
-    public string ReleasePage;
+    public string? ReleasePage;
 }
 
 internal class Updater
 {
-    //private readonly string _accessToken = "GITLAB_ACCESS_TOKEN_HERE"; 
     private readonly string _accessToken = "GITLAB_ACCESS_TOKEN_HERE";
     private string _baseAddress;
 
@@ -47,8 +46,8 @@ internal class Updater
             {
                 CommitSha = e.GetProperty("commit").GetProperty("id").GetString(),
                 ReleaseDate = e.GetProperty("released_at").GetDateTime(),
-                ReleasePage = string.Format("{0}/ShadiaoLeYuan/ServerProxy/-/releases/{1}", _baseAddress,
-                    e.GetProperty("tag_name").GetString())
+                ReleasePage =
+                    $"{_baseAddress}/ShadiaoLeYuan/ServerProxy/-/releases/{e.GetProperty("tag_name").GetString()}"
             };
 
             if (e.GetProperty("commit").GetProperty("id").GetString() == currentVersion.CommitSha)
@@ -57,15 +56,18 @@ internal class Updater
 
         if (DateTime.Compare(latestVersion.ReleaseDate, currentVersion.ReleaseDate) > 0)
         {
-            var result = MessageBox.Show(string.Format(
-                @"检测到新版本，是否要进行更新？
-我们建议新版本发布时尽快进行更新，以保证服务器能够正常访问
-更新需要手动进行，当按下“是”时，程序将打开新版本下载页面，更新前务必记得退出程序
+            var newVerMessage = currentVersion.ReleaseDate != DateTime.MinValue
+                ? "检测到新版本，是否要进行更新？"
+                : "检测到当前正在使用孤立/开发版本，是否要更新到最新的正式版本？";
+            var result = MessageBox.Show($"""
+                                          {newVerMessage}
+                                          我们建议新版本发布时尽快进行更新，以保证服务器能够正常访问
+                                          更新需要手动进行，当按下“是”时，程序将打开新版本下载页面，更新前务必记得退出程序
 
-新版本哈希: {0}
-发布日期(UTC标准时间): {1}",
-                latestVersion.CommitSha,
-                latestVersion.ReleaseDate.ToString(CultureInfo.InvariantCulture)), "检测到新版本", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                                          新版本哈希: {latestVersion.CommitSha}
+                                          发布日期(UTC标准时间): {latestVersion.ReleaseDate.ToString(CultureInfo.InvariantCulture)}
+                                          """, "检测到新版本", MessageBoxButtons.YesNo,
+                currentVersion.ReleaseDate != DateTime.MinValue ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
             if (result == DialogResult.Yes)
                 Process.Start(new ProcessStartInfo(latestVersion.ReleasePage) { UseShellExecute = true });
         }
