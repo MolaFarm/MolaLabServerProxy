@@ -15,6 +15,7 @@ public class VersionInfo
 
 internal class Updater
 {
+    //private readonly string _accessToken = "GITLAB_ACCESS_TOKEN_HERE"; 
     private readonly string _accessToken = "GITLAB_ACCESS_TOKEN_HERE";
     private string _baseAddress;
 
