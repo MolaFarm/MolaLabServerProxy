@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
 using System.Net.Http.Headers;
-using System.Reflection;
 using System.Text.Json;
 
 namespace ServerProxy;
@@ -21,14 +20,12 @@ internal class Updater
     public void Check(string baseAddress)
     {
         _baseAddress = baseAddress;
-        var gitVersionInformationType =
-            Assembly.GetExecutingAssembly().GetType("GitVersionInformation");
-        var fields = gitVersionInformationType?.GetFields();
-        var currentVersion = new VersionInfo();
+        var info = FileVersionInfo.GetVersionInfo(Process.GetCurrentProcess().MainModule.FileName);
         VersionInfo latestVersion = null;
-        foreach (var field in fields)
-            if (field.Name == "Sha")
-                currentVersion.CommitSha = (string?)field.GetValue(null);
+        var currentVersion = new VersionInfo
+        {
+            CommitSha = info.ProductVersion.Split("Sha.")[1]
+        };
 
         using var client = new HttpClient();
         client.BaseAddress = new Uri(_baseAddress);

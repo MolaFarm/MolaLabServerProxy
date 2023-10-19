@@ -32,7 +32,7 @@ internal class Proxy
     public async void StartProxy()
     {
         // Terminate ICS Service
-        if (_hnsController.Status == ServiceControllerStatus.Running)
+        if (PortInUse(53) && _hnsController.Status == ServiceControllerStatus.Running)
         {
             MessageBox.Show(
                 "检测到\"主机网络服务\"正在运行，这会破坏本程序的功能，程序将暂时杀死该服务，由于会影响到 Windows 虚拟化网络服务的工作（包括 Linux 子系统等功能），退出程序时请正常关闭该程序，程序退出时将恢复该服务的状态，在程序的工作期间，程序将接管\"主机网络服务\"的工作，不会影响绝大多数情况下的正常使用\n\n本程序运行时可能无法正常工作的服务：移动热点",
@@ -46,13 +46,7 @@ internal class Proxy
                 _hnsController.WaitForStatus(ServiceControllerStatus.Stopped);
                 _sharedAccessController.Stop();
                 _sharedAccessController.WaitForStatus(ServiceControllerStatus.Stopped);
-                for (var i = 0; i < 3; i++)
-                    if (PortInUse(53))
-                    {
-                        if (i == 2)
-                            throw new Exception("服务未能按预期停止");
-                        Thread.Sleep(1000);
-                    }
+                Thread.Sleep(1000);
             }
             catch (Exception ex)
             {
@@ -150,7 +144,7 @@ internal class Proxy
     private static bool PortInUse(int port)
     {
         var ipProperties = IPGlobalProperties.GetIPGlobalProperties();
-        var ipEndPoints = ipProperties.GetActiveTcpListeners();
+        var ipEndPoints = ipProperties.GetActiveUdpListeners();
 
         return ipEndPoints.Any(endPoint => endPoint.Port == port);
     }

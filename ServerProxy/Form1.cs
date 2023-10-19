@@ -1,6 +1,15 @@
 ﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ServerProxy;
+
+[JsonSourceGenerationOptions(WriteIndented = true)]
+[JsonSerializable(typeof(Config))]
+[JsonSerializable(typeof(bool))]
+[JsonSerializable(typeof(string))]
+internal partial class SourceGenerationContext : JsonSerializerContext
+{
+}
 
 public partial class Form1 : Form
 {
@@ -26,7 +35,7 @@ public partial class Form1 : Form
         try
         {
             var raw_conf = File.ReadAllText(Application.StartupPath + "/config.json");
-            _config = JsonSerializer.Deserialize<Config>(raw_conf);
+            _config = JsonSerializer.Deserialize(raw_conf, SourceGenerationContext.Default.Config);
         }
         catch (Exception ex)
         {
@@ -115,7 +124,7 @@ public partial class Form1 : Form
     private static void OnCheckBoxChanged(object sender, EventArgs e)
     {
         _config.checkUpdate = _checkBox.Checked;
-        var configString = JsonSerializer.Serialize(_config);
+        var configString = JsonSerializer.Serialize(_config, SourceGenerationContext.Default.Config);
         File.WriteAllText(Application.StartupPath + "/config.json", configString);
     }
 
