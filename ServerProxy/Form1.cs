@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Net.NetworkInformation;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace ServerProxy;
@@ -17,6 +18,7 @@ public partial class Form1 : Form
     private static Proxy _proxy;
     private static readonly CheckBox CheckBox = new() { Text = "启动时检查更新" };
     private static Config _config;
+    private static List<NetworkInterface> adapters;
 
     public Form1()
     {
@@ -53,10 +55,23 @@ public partial class Form1 : Form
         // Check for update
         if (_config.checkUpdate)
         {
-            var updater = new Updater();
-            updater.Check(_config.baseUpdateAddr);
+            try
+            {
+                var updater = new Updater();
+                updater.Check(_config.baseUpdateAddr);
+            }
+            catch (Exception ex)
+            {
+                ExceptionHandler.Handle(ex);
+                OnExit();
+            }
         }
-
+        // set DNS
+        adapters = Adapter.ListAllInterface();
+        foreach (NetworkInterface adapter in adapters)
+        {
+            Adapter.CSetDns(adapter,"127.0.0.1","::1");
+        }
         // Install Certificate
         CertificateUtil.Install();
 
@@ -116,6 +131,10 @@ public partial class Form1 : Form
 
     private static void OnExit()
     {
+        foreach(NetworkInterface adapter in adapters)
+        {
+            Adapter.CUnsetDns(adapter);
+        }
         _taskbarIcon.Dispose();
         if (Proxy.HnsOriginalStatus.IsStarted) _proxy.ServiceRestore();
         Environment.Exit(0);
@@ -130,6 +149,10 @@ public partial class Form1 : Form
 
     ~Form1()
     {
+        foreach (NetworkInterface adapter in adapters)
+        {
+            Adapter.CUnsetDns(adapter);
+        }
         _taskbarIcon.Dispose();
         if (Proxy.HnsOriginalStatus.IsStarted) _proxy.ServiceRestore();
     }
