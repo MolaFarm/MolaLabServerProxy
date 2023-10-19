@@ -15,7 +15,7 @@ public partial class Form1 : Form
 {
     private static NotifyIcon _taskbarIcon;
     private static Proxy _proxy;
-    private static readonly CheckBox _checkBox = new() { Text = "启动时检查更新" };
+    private static readonly CheckBox CheckBox = new() { Text = "启动时检查更新" };
     private static Config _config;
 
     public Form1()
@@ -26,16 +26,16 @@ public partial class Form1 : Form
         _taskbarIcon.Icon = Icon;
         _taskbarIcon.Visible = true;
         _taskbarIcon.ContextMenuStrip = new ContextMenuStrip();
-        var _host = new ToolStripControlHost(_checkBox);
-        _checkBox.CheckStateChanged += OnCheckBoxChanged;
-        _taskbarIcon.ContextMenuStrip.Items.Insert(0, _host);
+        var host = new ToolStripControlHost(CheckBox);
+        CheckBox.CheckStateChanged += OnCheckBoxChanged;
+        _taskbarIcon.ContextMenuStrip.Items.Insert(0, host);
         _taskbarIcon.ContextMenuStrip.Items.Add("退出", null, (s, e) => OnExit());
 
         // Read config
         try
         {
-            var raw_conf = File.ReadAllText(Application.StartupPath + "/config.json");
-            _config = JsonSerializer.Deserialize(raw_conf, SourceGenerationContext.Default.Config);
+            var rawConf = File.ReadAllText(Application.StartupPath + "/config.json");
+            _config = JsonSerializer.Deserialize(rawConf, SourceGenerationContext.Default.Config);
         }
         catch (Exception ex)
         {
@@ -48,7 +48,7 @@ public partial class Form1 : Form
         }
 
 
-        _checkBox.Checked = _config.checkUpdate;
+        CheckBox.Checked = _config.checkUpdate;
 
         // Check for update
         if (_config.checkUpdate)
@@ -100,7 +100,7 @@ public partial class Form1 : Form
             case Status.Starting:
                 iconText += "启动中";
                 break;
-            case Status.Unhealty:
+            case Status.UnHealthy:
                 iconText += "连接阻塞";
                 break;
         }
@@ -123,7 +123,7 @@ public partial class Form1 : Form
 
     private static void OnCheckBoxChanged(object sender, EventArgs e)
     {
-        _config.checkUpdate = _checkBox.Checked;
+        _config.checkUpdate = CheckBox.Checked;
         var configString = JsonSerializer.Serialize(_config, SourceGenerationContext.Default.Config);
         File.WriteAllText(Application.StartupPath + "/config.json", configString);
     }

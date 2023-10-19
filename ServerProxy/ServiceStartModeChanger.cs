@@ -39,7 +39,7 @@ internal static class ServiceStartModeChanger
     //   directory is used.
     //
     // Returns: None.
-    private static void Run(string command, out string output, out string error, string directory = null)
+    private static void Run(string command, out string output, out string error, string? directory = null)
     {
         using var process = new Process();
         process.StartInfo = new ProcessStartInfo

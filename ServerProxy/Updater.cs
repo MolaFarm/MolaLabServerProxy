@@ -14,13 +14,13 @@ public class VersionInfo
 
 internal class Updater
 {
-    private readonly string _accessToken = "GITLAB_ACCESS_TOKEN_HERE";
+    private const string _accessToken = "GITLAB_ACCESS_TOKEN_HERE";
     private string _baseAddress;
 
     public void Check(string baseAddress)
     {
         _baseAddress = baseAddress;
-        var info = FileVersionInfo.GetVersionInfo(Process.GetCurrentProcess().MainModule.FileName);
+        var info = FileVersionInfo.GetVersionInfo(Environment.ProcessPath);
         VersionInfo latestVersion = null;
         var currentVersion = new VersionInfo
         {
@@ -32,7 +32,7 @@ internal class Updater
         client.DefaultRequestHeaders.Add("PRIVATE-TOKEN", _accessToken);
         client.DefaultRequestHeaders.Accept.Add(
             new MediaTypeWithQualityHeaderValue("application/json"));
-        var url = "api/v4/projects/80/releases";
+        const string url = "api/v4/projects/80/releases";
         var response = client.GetAsync(url).Result;
         response.EnsureSuccessStatusCode();
         var resp = response.Content.ReadAsStringAsync().Result;
@@ -51,22 +51,20 @@ internal class Updater
                 currentVersion.ReleaseDate = e.GetProperty("released_at").GetDateTime();
         }
 
-        if (DateTime.Compare(latestVersion.ReleaseDate, currentVersion.ReleaseDate) > 0)
-        {
-            var newVerMessage = currentVersion.ReleaseDate != DateTime.MinValue
-                ? "检测到新版本，是否要进行更新？"
-                : "检测到当前正在使用孤立/开发版本，是否要更新到最新的正式版本？";
-            var result = MessageBox.Show($"""
-                                          {newVerMessage}
-                                          我们建议新版本发布时尽快进行更新，以保证服务器能够正常访问
-                                          更新需要手动进行，当按下“是”时，程序将打开新版本下载页面，更新前务必记得退出程序
+        if (DateTime.Compare(latestVersion.ReleaseDate, currentVersion.ReleaseDate) <= 0) return;
+        var newVerMessage = currentVersion.ReleaseDate != DateTime.MinValue
+            ? "检测到新版本，是否要进行更新？"
+            : "检测到当前正在使用孤立/开发版本，是否要更新到最新的正式版本？";
+        var result = MessageBox.Show($"""
+                                      {newVerMessage}
+                                      我们建议新版本发布时尽快进行更新，以保证服务器能够正常访问
+                                      更新需要手动进行，当按下“是”时，程序将打开新版本下载页面，更新前务必记得退出程序
 
-                                          新版本哈希: {latestVersion.CommitSha}
-                                          发布日期(UTC标准时间): {latestVersion.ReleaseDate.ToString(CultureInfo.InvariantCulture)}
-                                          """, "检测到新版本", MessageBoxButtons.YesNo,
-                currentVersion.ReleaseDate != DateTime.MinValue ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
-            if (result == DialogResult.Yes)
-                Process.Start(new ProcessStartInfo(latestVersion.ReleasePage) { UseShellExecute = true });
-        }
+                                      新版本哈希: {latestVersion.CommitSha}
+                                      发布日期(UTC标准时间): {latestVersion.ReleaseDate.ToString(CultureInfo.InvariantCulture)}
+                                      """, "检测到新版本", MessageBoxButtons.YesNo,
+            currentVersion.ReleaseDate != DateTime.MinValue ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+        if (result == DialogResult.Yes)
+            Process.Start(new ProcessStartInfo(latestVersion.ReleasePage) { UseShellExecute = true });
     }
 }

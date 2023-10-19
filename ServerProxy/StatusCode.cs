@@ -3,6 +3,6 @@
 public enum Status
 {
     Healthy,
-    Unhealty,
+    UnHealthy,
     Starting
 }

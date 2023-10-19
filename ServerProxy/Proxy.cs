@@ -117,7 +117,7 @@ internal class Proxy
             }
             catch (Exception ex)
             {
-                currentStatus = Status.Unhealty;
+                currentStatus = Status.UnHealthy;
             }
             finally
             {
@@ -130,7 +130,7 @@ internal class Proxy
                         case Status.Healthy:
                             Form1.ShowNotification("提示", "代理服务状态: 健康", ToolTipIcon.Info);
                             break;
-                        case Status.Unhealty:
+                        case Status.UnHealthy:
                             Form1.ShowNotification("警告", "代理服务状态: 连接阻塞", ToolTipIcon.Warning);
                             break;
                     }
