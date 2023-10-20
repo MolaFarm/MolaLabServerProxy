@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Security.Principal;
 using WinFormsComInterop;
 
 namespace ServerProxy;
@@ -15,6 +17,30 @@ internal static class Program
         // see https://aka.ms/applicationconfiguration.
         ComWrappers.RegisterForMarshalling(WinFormsComWrappers.Instance);
         ApplicationConfiguration.Initialize();
-        Application.Run(new Form1());
+
+        var identity = WindowsIdentity.GetCurrent();
+        var principal = new WindowsPrincipal(identity);
+        if (principal.IsInRole(WindowsBuiltInRole.Administrator))
+        {
+            Application.Run(new Form1());
+        }
+        else
+        {
+            var startInfo = new ProcessStartInfo();
+            startInfo.UseShellExecute = true;
+            startInfo.WorkingDirectory = Environment.CurrentDirectory;
+            startInfo.FileName = Application.ExecutablePath;
+            startInfo.Verb = "runas";
+            try
+            {
+                Process.Start(startInfo);
+            }
+            catch
+            {
+                return;
+            }
+
+            Application.Exit();
+        }
     }
 }
