@@ -1,76 +1,53 @@
-﻿using System.Net.NetworkInformation;
+﻿using System.Diagnostics;
+using System.Net.NetworkInformation;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace ServerProxy;
-
-[JsonSourceGenerationOptions(WriteIndented = true)]
-[JsonSerializable(typeof(Config))]
-[JsonSerializable(typeof(bool))]
-[JsonSerializable(typeof(string))]
-internal partial class SourceGenerationContext : JsonSerializerContext
-{
-}
 
 public partial class Form1 : Form
 {
     private static NotifyIcon _taskbarIcon;
     private static Proxy _proxy;
-    private static readonly CheckBox CheckBox = new() { Text = "启动时检查更新" };
-    private static Config _config;
     private static List<NetworkInterface> adapters;
 
     public Form1()
     {
         // Component initialization
         InitializeComponent();
+        var serverServiceMenu = new ToolStripMenuItem("快速访问服务器");
+        var programSettingsMenu = new ToolStripMenuItem("设置");
+        var isCheckUpdateOnStart = new ToolStripMenuItem("启动时检查更新", null, OnCheckBoxChanged);
+        var isShowMessageBoxOnStart = new ToolStripMenuItem("启动时检测到冲突时弹窗提示", null, OnCheckBoxChanged);
+
         _taskbarIcon = new NotifyIcon();
         _taskbarIcon.Icon = Icon;
         _taskbarIcon.Visible = true;
         _taskbarIcon.ContextMenuStrip = new ContextMenuStrip();
-        var host = new ToolStripControlHost(CheckBox);
-        CheckBox.CheckStateChanged += OnCheckBoxChanged;
-        _taskbarIcon.ContextMenuStrip.Items.Insert(0, host);
+        serverServiceMenu.DropDownItems.Add("GitLab", null, OnServerServiceMenuClicked);
+        serverServiceMenu.DropDownItems.Add("Coder", null, OnServerServiceMenuClicked);
+        serverServiceMenu.DropDownItems.Add("NextCloud", null, OnServerServiceMenuClicked);
+        programSettingsMenu.DropDownItems.Add(isCheckUpdateOnStart);
+        programSettingsMenu.DropDownItems.Add(isShowMessageBoxOnStart);
+        _taskbarIcon.ContextMenuStrip.Items.Add(programSettingsMenu);
+        _taskbarIcon.ContextMenuStrip.Items.Add(serverServiceMenu);
         _taskbarIcon.ContextMenuStrip.Items.Add("退出", null, (s, e) => OnExit());
 
-        // Read config
-        try
-        {
-            var rawConf = File.ReadAllText(Application.StartupPath + "/config.json");
-            _config = JsonSerializer.Deserialize(rawConf, SourceGenerationContext.Default.Config);
-        }
-        catch (Exception ex)
-        {
-            _config = new Config
-            {
-                checkUpdate = true,
-                serverIP = "114.132.172.176",
-                baseUpdateAddr = "http://IP_ADDRESS_START_HERE.38:31080"
-            };
-        }
-
-
-        CheckBox.Checked = _config.checkUpdate;
+        isCheckUpdateOnStart.Checked = Program._config.checkUpdate;
+        isShowMessageBoxOnStart.Checked = Program._config.showMessageBoxOnStart;
 
         // Check for update
-        if (_config.checkUpdate)
-            try
-            {
-                var updater = new Updater();
-                updater.Check(_config.baseUpdateAddr);
-            }
-            catch (Exception ex)
-            {
-                ExceptionHandler.Handle(ex);
-                OnExit();
-            }
+        if (Program._config.checkUpdate)
+        {
+            var updater = new Updater();
+            updater.Check(Program._config.baseUpdateAddr);
+        }
 
         // Install Certificate
         CertificateUtil.Install();
 
         // Create Proxy
         SetStatus(Status.Starting);
-        _proxy = new Proxy($"https://{_config.serverIP}/");
+        _proxy = new Proxy($"https://{Program._config.serverIP}/");
         _ = Task.Run(_proxy.StartProxy);
 
         // Set DNS
@@ -131,20 +108,33 @@ public partial class Form1 : Form
         foreach (var adapter in adapters) Adapter.CUnsetDns(adapter);
         _taskbarIcon.Dispose();
         if (Proxy.HnsOriginalStatus.IsStarted) _proxy.ServiceRestore();
-        Environment.Exit(0);
+        Application.Exit();
     }
 
-    private static void OnCheckBoxChanged(object sender, EventArgs e)
+    private static void OnServerServiceMenuClicked(object? sender, EventArgs e)
     {
-        _config.checkUpdate = CheckBox.Checked;
-        var configString = JsonSerializer.Serialize(_config, SourceGenerationContext.Default.Config);
+        var item = sender as ToolStripItem;
+        var addr = item.Text switch
+        {
+            "GitLab" => "https://git.labserver.internal",
+            "Coder" => "https://coder.labserver.internal",
+            "NextCloud" => "https://cloud.labserver.internal",
+            _ => null
+        };
+
+        Process.Start(new ProcessStartInfo(addr) { UseShellExecute = true });
+    }
+
+    private static void OnCheckBoxChanged(object? sender, EventArgs e)
+    {
+        var ck = sender as ToolStripMenuItem;
+        ck.Checked = !ck.Checked;
+        if (ck.Text == "启动时检查更新")
+            Program._config.checkUpdate = ck.Checked;
+        else
+            Program._config.showMessageBoxOnStart = ck.Checked;
+
+        var configString = JsonSerializer.Serialize(Program._config, SourceGenerationContext.Default.Config);
         File.WriteAllText(Application.StartupPath + "/config.json", configString);
-    }
-
-    ~Form1()
-    {
-        foreach (var adapter in adapters) Adapter.CUnsetDns(adapter);
-        _taskbarIcon.Dispose();
-        if (Proxy.HnsOriginalStatus.IsStarted) _proxy.ServiceRestore();
     }
 }
