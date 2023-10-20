@@ -1,4 +1,4 @@
-using System.Net.NetworkInformation;
+﻿using System.Net.NetworkInformation;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -54,7 +54,6 @@ public partial class Form1 : Form
 
         // Check for update
         if (_config.checkUpdate)
-        {
             try
             {
                 var updater = new Updater();
@@ -129,10 +128,7 @@ public partial class Form1 : Form
 
     private static void OnExit()
     {
-        foreach(NetworkInterface adapter in adapters)
-        {
-            Adapter.CUnsetDns(adapter);
-        }
+        foreach (var adapter in adapters) Adapter.CUnsetDns(adapter);
         _taskbarIcon.Dispose();
         if (Proxy.HnsOriginalStatus.IsStarted) _proxy.ServiceRestore();
         Environment.Exit(0);
@@ -147,10 +143,7 @@ public partial class Form1 : Form
 
     ~Form1()
     {
-        foreach (NetworkInterface adapter in adapters)
-        {
-            Adapter.CUnsetDns(adapter);
-        }
+        foreach (var adapter in adapters) Adapter.CUnsetDns(adapter);
         _taskbarIcon.Dispose();
         if (Proxy.HnsOriginalStatus.IsStarted) _proxy.ServiceRestore();
     }
