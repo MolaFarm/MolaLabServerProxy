@@ -1,4 +1,4 @@
-﻿using System.Net.NetworkInformation;
+using System.Net.NetworkInformation;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -65,13 +65,7 @@ public partial class Form1 : Form
                 ExceptionHandler.Handle(ex);
                 OnExit();
             }
-        }
-        // set DNS
-        adapters = Adapter.ListAllInterface();
-        foreach (NetworkInterface adapter in adapters)
-        {
-            Adapter.CSetDns(adapter,"127.0.0.1","::1");
-        }
+
         // Install Certificate
         CertificateUtil.Install();
 
@@ -79,6 +73,10 @@ public partial class Form1 : Form
         SetStatus(Status.Starting);
         _proxy = new Proxy($"https://{_config.serverIP}/");
         _ = Task.Run(_proxy.StartProxy);
+
+        // Set DNS
+        adapters = Adapter.ListAllInterface();
+        foreach (var adapter in adapters) Adapter.CSetDns(adapter, "127.0.0.1", "::1");
     }
 
     // Show a notification with the specified title, message, and icon.
