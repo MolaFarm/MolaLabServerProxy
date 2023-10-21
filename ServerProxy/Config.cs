@@ -2,8 +2,8 @@
 
 public class Config
 {
-    public string serverIP { get; set; }
-    public string baseUpdateAddr { get; set; }
-    public bool checkUpdate { get; set; }
-    public bool showMessageBoxOnStart { get; set; }
+    public string serverIP { get; set; }; // Set the default server IP here.
+    public string baseUpdateAddr { get; set; } = "https://git.labserver.internal";
+    public bool checkUpdate { get; set; } = true;
+    public bool showMessageBoxOnStart { get; set; } = true;
 }

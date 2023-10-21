@@ -37,20 +37,18 @@ internal static class Program
             if (principal.IsInRole(WindowsBuiltInRole.Administrator))
             {
                 // Read config
+                var rawConf = "{}";
                 try
                 {
-                    var rawConf = File.ReadAllText(Application.StartupPath + "/config.json");
-                    _config = JsonSerializer.Deserialize(rawConf, SourceGenerationContext.Default.Config);
+                    rawConf = File.ReadAllText(Application.StartupPath + "/config.json");
                 }
                 catch (Exception ex)
                 {
-                    _config = new Config
-                    {
-                        checkUpdate = true,
-                        showMessageBoxOnStart = true,
-                        serverIP = "114.132.172.176",
-                        baseUpdateAddr = "http://IP_ADDRESS_START_HERE.38:31080"
-                    };
+                    // ignored
+                }
+                finally
+                {
+                    _config = JsonSerializer.Deserialize(rawConf, SourceGenerationContext.Default.Config);
                 }
 
                 Application.Run(new Form1());
