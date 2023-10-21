@@ -94,9 +94,15 @@ internal class Proxy
         // Create the server
         using IDnsServer server = new DnsUdpServer(rawClient, serverOptions);
 
+        var serverListener = server.Listen();
         var checker = HealthChecker();
+        DNSProxy forwardproxy = new();
+        var forwarder = forwardproxy.Start(IPAddress.Loopback, 53, IPAddress.IPv6Loopback, 53);
+
         Form1.ShowNotification("代理服务", "代理服务已启动", ToolTipIcon.Info);
-        await server.Listen();
+
+        await serverListener;
+        await forwarder;
         await checker;
     }
 
