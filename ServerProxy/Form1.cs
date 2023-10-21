@@ -39,7 +39,14 @@ public partial class Form1 : Form
         if (Program._config.checkUpdate)
         {
             var updater = new Updater();
-            updater.Check(Program._config.baseUpdateAddr);
+            try 
+            {
+                updater.Check(Program._config.baseUpdateAddr);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("更新检查失败，请检查配置文件中的 `baseUpdateAddr` 是否正确。", "更新检查失败", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
         }
 
         // Install Certificate
