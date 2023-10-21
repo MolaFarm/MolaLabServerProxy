@@ -122,9 +122,9 @@ internal class Proxy
         if (result == DialogResult.Yes)
         {
             _wslServiceController.Stop();
-            _hnsController.WaitForStatus(ServiceControllerStatus.Stopped);
+            _wslServiceController.WaitForStatus(ServiceControllerStatus.Stopped);
             _wslServiceController.Start();
-            _hnsController.WaitForStatus(ServiceControllerStatus.Running);
+            _wslServiceController.WaitForStatus(ServiceControllerStatus.Running);
         }
     }
 
