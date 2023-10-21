@@ -39,7 +39,7 @@ internal class Proxy
     }
 
     // Starts the proxy service.
-    public async void StartProxy()
+    public async Task StartProxy()
     {
         // Terminate ICS Service
         if (PortInUse(53) && _hnsController.Status == ServiceControllerStatus.Running)
@@ -58,7 +58,7 @@ internal class Proxy
             _hnsController.WaitForStatus(ServiceControllerStatus.Stopped);
             _sharedAccessController.Stop();
             _sharedAccessController.WaitForStatus(ServiceControllerStatus.Stopped);
-            Thread.Sleep(1000);
+            await Task.Delay(1000);
         }
         else
         {
@@ -161,7 +161,7 @@ internal class Proxy
                     }
                 }
 
-                Thread.Sleep(60000);
+                await Task.Delay(60000);
             }
     }
 

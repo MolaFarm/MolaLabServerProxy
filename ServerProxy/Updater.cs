@@ -17,8 +17,28 @@ internal class Updater
     private const string _accessToken = "GITLAB_ACCESS_TOKEN_HERE";
     private string _baseAddress;
 
-    public void Check(string baseAddress)
+    public void CheckUpdate(string baseAddress)
     {
+        try
+        {
+            Check(baseAddress);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("更新检查失败，请检查配置文件中的 `baseUpdateAddr` 是否正确。", "更新检查失败", MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
+    }
+
+    private void Check(string baseAddress)
+    {
+        // Wait for DNS Ready
+        while (Form1.GetStatus() != Status.Healthy)
+        {
+            if (Form1.IsOnExit) return;
+            Thread.Sleep(1000);
+        }
+
         _baseAddress = baseAddress;
         var info = FileVersionInfo.GetVersionInfo(Environment.ProcessPath);
         VersionInfo latestVersion = null;
@@ -27,6 +47,10 @@ internal class Updater
             CommitSha = info.ProductVersion.Split("Sha.")[1]
         };
 
+        var handler = new HttpClientHandler();
+        handler.ClientCertificateOptions = ClientCertificateOption.Manual;
+        handler.ServerCertificateCustomValidationCallback =
+            (httpRequestMessage, cert, cetChain, policyErrors) => true;
         using var client = new HttpClient();
         client.BaseAddress = new Uri(_baseAddress);
         client.DefaultRequestHeaders.Add("PRIVATE-TOKEN", _accessToken);

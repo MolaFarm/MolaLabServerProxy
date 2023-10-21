@@ -9,6 +9,7 @@ public partial class Form1 : Form
     private static NotifyIcon _taskbarIcon;
     private static Proxy _proxy;
     private static List<NetworkInterface> adapters;
+    public static bool IsOnExit;
 
     public Form1()
     {
@@ -35,20 +36,6 @@ public partial class Form1 : Form
         isCheckUpdateOnStart.Checked = Program._config.checkUpdate;
         isShowMessageBoxOnStart.Checked = Program._config.showMessageBoxOnStart;
 
-        // Check for update
-        if (Program._config.checkUpdate)
-        {
-            var updater = new Updater();
-            try 
-            {
-                updater.Check(Program._config.baseUpdateAddr);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("更新检查失败，请检查配置文件中的 `baseUpdateAddr` 是否正确。", "更新检查失败", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-        }
-
         // Install Certificate
         CertificateUtil.Install();
 
@@ -60,6 +47,12 @@ public partial class Form1 : Form
         // Set DNS
         adapters = Adapter.ListAllInterface();
         foreach (var adapter in adapters) Adapter.CSetDns(adapter, "127.0.0.1", "::1");
+
+        // Check for update
+        if (!Program._config.checkUpdate) return;
+        var updater = new Updater();
+        var UpdaterThread = new Thread(() => updater.CheckUpdate(Program._config.baseUpdateAddr));
+        UpdaterThread.Start();
     }
 
     // Show a notification with the specified title, message, and icon.
@@ -104,6 +97,21 @@ public partial class Form1 : Form
         _taskbarIcon.Text = iconText;
     }
 
+    public static Status GetStatus()
+    {
+        switch (_taskbarIcon.Text)
+        {
+            case "代理服务\n服务状态：健康":
+                return Status.Healthy;
+            case "代理服务\n服务状态：启动中":
+                return Status.Starting;
+            case "代理服务\n服务状态：连接阻塞":
+                return Status.UnHealthy;
+        }
+
+        return Status.UnHealthy;
+    }
+
     protected override void OnShown(EventArgs e)
     {
         base.OnShown(e);
@@ -112,9 +120,10 @@ public partial class Form1 : Form
 
     private static void OnExit()
     {
+        IsOnExit = true;
         foreach (var adapter in adapters) Adapter.CUnsetDns(adapter);
-        _taskbarIcon.Dispose();
         if (Proxy.HnsOriginalStatus.IsStarted) _proxy.ServiceRestore();
+        _taskbarIcon.Dispose();
         Application.Exit();
     }
 
