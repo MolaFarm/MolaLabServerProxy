@@ -8,13 +8,14 @@ variables:
   PROJECT_DIR: ServerProxy
   RELEASE_DIR: ServerProxy/bin/Release/net7.0-windows
   ARTIFACTS_DIR: ServerProxy/bin/Release/net7.0-windows
-  GIT_DEPTH: "1000"
 
 build-win-x64:
   stage: build
   tags:
     - shared
     - windows2022
+  before_script:
+    - git fetch --unshallow --all
   script:
     - cd $PROJECT_DIR
     - dotnet publish -r win-x64 -c Release /p:EnableWindowsTargeting=true
@@ -29,6 +30,8 @@ build-win-arm64:
   tags:
     - shared
     - windows2022
+  before_script:
+    - git fetch --unshallow --all
   script:
     - cd $PROJECT_DIR
     - dotnet publish -r win-arm64 -c Release /p:EnableWindowsTargeting=true
