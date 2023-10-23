@@ -199,6 +199,8 @@ internal class Proxy
         var ipProperties = IPGlobalProperties.GetIPGlobalProperties();
         var ipEndPoints = ipProperties.GetActiveUdpListeners();
 
-        return ipEndPoints.Any(endPoint => endPoint.Port == port);
+        return ipEndPoints.Any(endPoint =>
+            endPoint.Port == port &&
+            (endPoint.Address.Equals(IPAddress.Any) || endPoint.Address.Equals(IPAddress.Loopback)));
     }
 }
