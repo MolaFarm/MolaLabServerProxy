@@ -16,5 +16,6 @@ internal static class ExceptionHandler
                          {ex.StackTrace}
                          """, "致命错误",
             MessageBoxButtons.OK, MessageBoxIcon.Error);
+        Application.Exit();
     }
 }
