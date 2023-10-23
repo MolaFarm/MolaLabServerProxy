@@ -14,14 +14,26 @@ internal static class CertificateUtil
                 .ToArray();
 
 
-        store.Open(OpenFlags.ReadOnly);
-        var certificates = store.Certificates.Find(X509FindType.FindByThumbprint, thumbprint, false);
-        if (certificates.Count != 0) return;
-        MessageBox.Show("没有检测到根证书，程序将自动安装证书", "注意", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-        X509Certificate2 certificate = new(rootCa);
-        store.Open(OpenFlags.ReadWrite);
-        store.Add(certificate);
-        MessageBox.Show("证书已被成功安装", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        try
+        {
+            store.Open(OpenFlags.ReadOnly);
+            var certificates = store.Certificates.Find(X509FindType.FindByThumbprint, thumbprint, false);
+            if (certificates.Count != 0) return;
+            MessageBox.Show("没有检测到根证书，程序将自动安装证书", "注意", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            X509Certificate2 certificate = new(rootCa);
+            store.Open(OpenFlags.ReadWrite);
+            store.Add(certificate);
+            MessageBox.Show("证书已被成功安装", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.Handle(ex);
+            Environment.Exit(-1);
+        }
+        finally
+        {
+            store.Close();
+        }
 
         store.Close();
     }
