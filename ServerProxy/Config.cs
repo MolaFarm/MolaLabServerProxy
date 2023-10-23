@@ -6,4 +6,5 @@ public class Config
     public string baseUpdateAddr { get; set; } = "https://git.labserver.internal";
     public bool checkUpdate { get; set; } = true;
     public bool showMessageBoxOnStart { get; set; } = true;
+    public bool showDebugConsoleOnStart { get; set; } = false;
 }

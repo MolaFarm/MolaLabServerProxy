@@ -15,10 +15,6 @@ internal class DNSProxy
     {
         var connections = new ConcurrentDictionary<IPEndPoint, UdpConnection>();
 
-        // TCP will lookup every time while this is only once.
-        //var ips = await Dns.GetHostAddressesAsync(remoteServerHostNameOrAddress).ConfigureAwait(false);
-        //var remoteServerEndPoint = new IPEndPoint(ips[0], remoteServerPort);
-
         var remoteServerEndPoint = new IPEndPoint(remoteIp, remotePort);
 
         var localServer = new UdpClient(AddressFamily.InterNetworkV6);
@@ -57,6 +53,7 @@ internal class DNSProxy
             }
             catch (Exception ex)
             {
+                //ExceptionHandler.Handle(ex);
                 Console.WriteLine($"an exception occurred on receiving a client datagram: {ex}");
             }
     }
@@ -122,7 +119,8 @@ internal class UdpConnection
                     }
                     catch (Exception ex)
                     {
-                        if (_isRunning) ExceptionHandler.Handle(ex);
+                        //if (_isRunning) ExceptionHandler.Handle(ex);
+                        Console.WriteLine($"an exception occurred on receiving a client datagram: {ex}");
                     }
             }
         });
@@ -139,7 +137,8 @@ internal class UdpConnection
         }
         catch (Exception ex)
         {
-            ExceptionHandler.Handle(ex);
+            //ExceptionHandler.Handle(ex);
+            Console.WriteLine($"an exception occurred on receiving a client datagram: {ex}");
         }
     }
 }
