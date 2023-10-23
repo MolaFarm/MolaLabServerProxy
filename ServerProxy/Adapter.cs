@@ -22,10 +22,37 @@ internal class Adapter
         {
             var Pd1 = adapter.NetworkInterfaceType == NetworkInterfaceType.Ethernet ||
                       adapter.NetworkInterfaceType == NetworkInterfaceType.Wireless80211;
-            if (!IsVirtualNetworkAdapter(adapter) && IsActivateNetworkAdapter(adapter)) res.Add(adapter);
+            if (!IsVirtualNetworkAdapter(adapter) && IsActivateNetworkAdapter(adapter) && adapter.NetworkInterfaceType != NetworkInterfaceType.Loopback) res.Add(adapter);
         }
 
         return res;
+    }
+
+    public static bool IsIPv6Adapter(NetworkInterface adapter)
+    {
+        IPInterfaceProperties adapterProperties = adapter.GetIPProperties();
+        try
+        {
+            if (adapterProperties.GetIPv6Properties().Index > 0) return true;
+
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public static bool ShouldProxyV6()
+    {
+        foreach(NetworkInterface i in ListAllInterface())
+        {
+            if (IsIPv6Adapter(i))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
 

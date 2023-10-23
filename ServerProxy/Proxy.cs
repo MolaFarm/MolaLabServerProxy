@@ -96,13 +96,22 @@ internal class Proxy
 
         var serverListener = server.Listen();
         var checker = HealthChecker();
-        DNSProxy forwardproxy = new();
-        var forwarder = forwardproxy.Start(IPAddress.Loopback, 53, IPAddress.IPv6Loopback, 53);
+
+        bool v6proxy = Adapter.ShouldProxyV6();
+
+        if (v6proxy)
+        {
+            DNSProxy forwardproxy = new();
+            var forwarder = forwardproxy.Start(IPAddress.Loopback, 53, IPAddress.IPv6Loopback, 53);
+        }
+        else
+        {
+            Console.WriteLine("Ipv6 disable, DNS proxy will not start");
+        }
 
         Form1.ShowNotification("代理服务", "代理服务已启动", ToolTipIcon.Info);
 
         await serverListener;
-        await forwarder;
         await checker;
     }
 
