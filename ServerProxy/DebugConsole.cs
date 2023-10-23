@@ -1,25 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.InteropServices;
 
-namespace ServerProxy
+namespace ServerProxy;
+
+internal class DebugConsole
 {
-    internal class DebugConsole
-    {
-        /// <summary>
-        /// Allocates a new console for current process.
-        /// </summary>
-        [DllImport("kernel32.dll")]
-        public static extern Boolean AllocConsole();
+    /// <summary>
+    ///     Allocates a new console for current process.
+    /// </summary>
+    [DllImport("kernel32.dll")]
+    public static extern bool AllocConsole();
 
-        /// <summary>
-        /// Frees the console.
-        /// </summary>
-        [DllImport("kernel32.dll")]
-        public static extern Boolean FreeConsole();
-
-    }
+    /// <summary>
+    ///     Frees the console.
+    /// </summary>
+    [DllImport("kernel32.dll")]
+    public static extern bool FreeConsole();
 }

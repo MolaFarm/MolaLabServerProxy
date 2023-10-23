@@ -39,10 +39,7 @@ public partial class Form1 : Form
         isShowMessageBoxOnStart.Checked = Program._config.showMessageBoxOnStart;
         isShowDebugConsole.Checked = Program._config.showDebugConsoleOnStart;
 
-        if (Program._config.showDebugConsoleOnStart)
-        {
-            DebugConsole.AllocConsole();
-        }
+        if (Program._config.showDebugConsoleOnStart) DebugConsole.AllocConsole();
 
         // Install Certificate
         CertificateUtil.Install();
@@ -128,10 +125,7 @@ public partial class Form1 : Form
 
     private static void OnExit()
     {
-        if (Program._config.showDebugConsoleOnStart)
-        {
-            DebugConsole.FreeConsole();
-        }
+        if (Program._config.showDebugConsoleOnStart) DebugConsole.FreeConsole();
         IsOnExit = true;
         foreach (var adapter in adapters) Adapter.CUnsetDns(adapter);
         if (Proxy.HnsOriginalStatus.IsStarted) _proxy.ServiceRestore();
@@ -159,7 +153,7 @@ public partial class Form1 : Form
         ck.Checked = !ck.Checked;
         if (ck.Text == "启动时检查更新")
             Program._config.checkUpdate = ck.Checked;
-        else if(ck.Text == "启动时检测到冲突时弹窗提示")
+        else if (ck.Text == "启动时检测到冲突时弹窗提示")
             Program._config.showMessageBoxOnStart = ck.Checked;
         else
             Program._config.showDebugConsoleOnStart = ck.Checked;

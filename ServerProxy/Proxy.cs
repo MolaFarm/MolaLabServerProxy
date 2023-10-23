@@ -59,7 +59,6 @@ internal class Proxy
         }
 
         if (PortInUse(53))
-        {
             try
             {
                 // Disable HNS when port is not available
@@ -90,7 +89,6 @@ internal class Proxy
             {
                 ExceptionHandler.Handle(ex);
             }
-        }
 
         var handler = new HttpClientHandler();
         handler.ClientCertificateOptions = ClientCertificateOption.Manual;
@@ -118,7 +116,7 @@ internal class Proxy
         var serverListener = server.Listen();
         var checker = HealthChecker();
 
-        bool v6proxy = Adapter.ShouldProxyV6();
+        var v6proxy = Adapter.ShouldProxyV6();
 
         if (v6proxy)
         {
