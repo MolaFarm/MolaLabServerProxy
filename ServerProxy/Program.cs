@@ -1,4 +1,5 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text.Json;
@@ -27,6 +28,7 @@ internal static class Program
     {
         // To customize application configuration such as set high DPI settings or default font,
         // see https://aka.ms/applicationconfiguration.
+        const string programUuid = "00079740-26a3-4732-9065-772e81ea93b5";
         try
         {
             ComWrappers.RegisterForMarshalling(WinFormsComWrappers.Instance);
@@ -34,42 +36,56 @@ internal static class Program
 
             var identity = WindowsIdentity.GetCurrent();
             var principal = new WindowsPrincipal(identity);
-            if (principal.IsInRole(WindowsBuiltInRole.Administrator))
-            {
-                // Read config
-                var rawConf = "{}";
-                try
-                {
-                    rawConf = File.ReadAllText(Application.StartupPath + "/config.json");
-                }
-                catch (Exception ex)
-                {
-                    // ignored
-                }
-                finally
-                {
-                    _config = JsonSerializer.Deserialize(rawConf, SourceGenerationContext.Default.Config);
-                }
 
-                Application.Run(new Form1());
-            }
-            else
+            bool createNew;
+            using (Mutex mutex =
+                   new Mutex(true, programUuid, out createNew))
             {
-                var startInfo = new ProcessStartInfo();
-                startInfo.UseShellExecute = true;
-                startInfo.WorkingDirectory = Environment.CurrentDirectory;
-                startInfo.FileName = Application.ExecutablePath;
-                startInfo.Verb = "runas";
-                try
+                if (createNew)
                 {
-                    Process.Start(startInfo);
-                }
-                catch
-                {
-                    return;
-                }
+                    if (principal.IsInRole(WindowsBuiltInRole.Administrator))
+                    {
+                        // Read config
+                        var rawConf = "{}";
+                        try
+                        {
+                            rawConf = File.ReadAllText(Application.StartupPath + "/config.json");
+                        }
+                        catch (Exception ex)
+                        {
+                            // ignored
+                        }
+                        finally
+                        {
+                            _config = JsonSerializer.Deserialize(rawConf, SourceGenerationContext.Default.Config);
+                        }
 
-                Application.Exit();
+                        Application.Run(new Form1());
+                    }
+                    else
+                    {
+                        var startInfo = new ProcessStartInfo();
+                        startInfo.UseShellExecute = true;
+                        startInfo.WorkingDirectory = Environment.CurrentDirectory;
+                        startInfo.FileName = Application.ExecutablePath;
+                        startInfo.Verb = "runas";
+                        try
+                        {
+                            Process.Start(startInfo);
+                        }
+                        catch
+                        {
+                            return;
+                        }
+
+                        Application.Exit();
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("程序已在运行，不允许同时允许多个程序实例", "检测到互斥锁", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    Application.Exit();
+                }
             }
         }
         catch (Exception ex)
