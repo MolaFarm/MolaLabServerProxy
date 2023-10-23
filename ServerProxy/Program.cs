@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-using System.Reflection;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -38,48 +36,26 @@ internal static class Program
             var principal = new WindowsPrincipal(identity);
 
             bool createNew;
-            using (Mutex mutex =
-                   new Mutex(true, programUuid, out createNew))
+            using (var mutex = new Mutex(true, programUuid, out createNew))
             {
                 if (createNew)
                 {
-                    if (principal.IsInRole(WindowsBuiltInRole.Administrator))
+                    // Read config
+                    var rawConf = "{}";
+                    try
                     {
-                        // Read config
-                        var rawConf = "{}";
-                        try
-                        {
-                            rawConf = File.ReadAllText(Application.StartupPath + "/config.json");
-                        }
-                        catch (Exception ex)
-                        {
-                            // ignored
-                        }
-                        finally
-                        {
-                            _config = JsonSerializer.Deserialize(rawConf, SourceGenerationContext.Default.Config);
-                        }
-
-                        Application.Run(new Form1());
+                        rawConf = File.ReadAllText(Application.StartupPath + "/config.json");
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        var startInfo = new ProcessStartInfo();
-                        startInfo.UseShellExecute = true;
-                        startInfo.WorkingDirectory = Environment.CurrentDirectory;
-                        startInfo.FileName = Application.ExecutablePath;
-                        startInfo.Verb = "runas";
-                        try
-                        {
-                            Process.Start(startInfo);
-                        }
-                        catch
-                        {
-                            return;
-                        }
-
-                        Application.Exit();
+                        // ignored
                     }
+                    finally
+                    {
+                        _config = JsonSerializer.Deserialize(rawConf, SourceGenerationContext.Default.Config);
+                    }
+
+                    Application.Run(new Form1());
                 }
                 else
                 {

@@ -8,6 +8,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <PublishAot>true</PublishAot>
         <_SuppressWinFormsTrimError>true</_SuppressWinFormsTrimError>
+        <ApplicationManifest>app.manifest</ApplicationManifest>
     </PropertyGroup>
 
     <ItemGroup>
