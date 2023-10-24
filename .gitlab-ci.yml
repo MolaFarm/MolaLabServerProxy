@@ -8,6 +8,7 @@ variables:
   PROJECT_DIR: ServerProxy
   RELEASE_DIR: ServerProxy/bin/Release/net7.0-windows
   ARTIFACTS_DIR: ServerProxy/bin/Release/net7.0-windows
+  GIT_SSL_NO_VERIFY: "true"
 
 build-win-x64:
   stage: build
