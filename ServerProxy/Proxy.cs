@@ -104,7 +104,7 @@ internal class Proxy
 
         var serverOptions = new DnsUdpServerOptions
         {
-            Endpoint = new IPEndPoint(IPAddress.Any, 53)
+            Endpoint = new IPEndPoint(IPAddress.Loopback, 53)
         };
 
         // Create a "raw" client (efficiently deals with network buffers)
@@ -145,7 +145,7 @@ internal class Proxy
         _hnsController.WaitForStatus(ServiceControllerStatus.Running);
         if (_wslServiceController == null || _wslServiceController.Status == ServiceControllerStatus.Stopped) return;
         var result = MessageBox.Show(
-            "在测试中我们发现 WSL 可能会在程序退出后仍旧无法正常启动，如果你也遇到了这个问题，请点击\"是\"，我们将在退出时进行修复，注意修复时 WSL 会被重启，请确保当前数据已经保存好",
+            "在测试中我们发现 WSL 可能会在程序退出后可能无法正常启动，如果你也遇到了这个问题，请点击\"是\"，我们将在退出时进行修复，注意修复时 WSL 会被重启，请确保当前数据已经保存好",
             "提示", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
         if (result == DialogResult.Yes)
         {
@@ -201,6 +201,6 @@ internal class Proxy
 
         return ipEndPoints.Any(endPoint =>
             endPoint.Port == port &&
-            (endPoint.Address.Equals(IPAddress.Any) || endPoint.Address.Equals(IPAddress.Loopback)));
+            (endPoint.Address.Equals(IPAddress.Loopback)));
     }
 }
