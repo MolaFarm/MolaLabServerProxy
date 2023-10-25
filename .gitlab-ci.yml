@@ -52,7 +52,9 @@ publish:
       - tags
     script:
       - sed -i 's/dl-cdn.alpinelinux.org/cernet.mirrors.ustc.edu.cn/g' /etc/apk/repositories
-      - apk update && apk add curl
+      - apk update && apk add curl ca-certificates
+      - cp /etc/gitlab-runner/certs/ca.crt /usr/local/share/ca-certificates/ca.crt
+      - update-ca-certificates --fresh
       - curl --location --output /usr/local/bin/release-cli "https://gitlab.com/api/v4/projects/gitlab-org%2Frelease-cli/packages/generic/release-cli/latest/release-cli-linux-amd64"
       - chmod +x /usr/local/bin/release-cli
       - release-cli create --name "Release $CI_COMMIT_SHA" --tag-name $CI_COMMIT_TAG  --assets-link "[{\"name\":\"Win64\",\"url\":\"https://git.labserver.internal/ShadiaoLeYuan/ServerProxy/-/jobs/$(cat $PROJECT_DIR/JOBID64|sed "s/\r//g")/artifacts/download\",\"link_type\":\"package\"}, {\"name\":\"ARM64\",\"url\":\"https://git.labserver.internal/ShadiaoLeYuan/ServerProxy/-/jobs/$(cat $PROJECT_DIR/JOBIDAA64|sed "s/\r//g")/artifacts/download\",\"link_type\":\"package\"}]"
