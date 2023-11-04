@@ -131,7 +131,7 @@ internal class Adapter
         var setIpv6DnsAddress = $"interface ipv6 set dns name=\"{adapter.Name}\" static {ipv6PrimaryAddress}";
 
         RunCommand(setIpv4DnsAddress);
-        RunCommand(setIpv6DnsAddress);
+        if (IsIPv6Adapter(adapter)) RunCommand(setIpv6DnsAddress);
     }
 
     public static void CUnsetDns(NetworkInterface adapter)
@@ -141,7 +141,7 @@ internal class Adapter
         var setIpv6DnsAddress = $"interface ipv6 set dns name=\"{adapter.Name}\" dhcp";
 
         RunCommand(setIpv4DnsAddress);
-        RunCommand(setIpv6DnsAddress);
+        if (IsIPv6Adapter(adapter)) RunCommand(setIpv6DnsAddress);
     }
 
     private static void RunCommand(string command)
