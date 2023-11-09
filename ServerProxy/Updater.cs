@@ -25,8 +25,14 @@ internal class Updater
         }
         catch (Exception ex)
         {
-            MessageBox.Show("更新检查失败，请检查配置文件中的 `baseUpdateAddr` 是否正确。", "更新检查失败", MessageBoxButtons.OK,
-                MessageBoxIcon.Warning);
+            MessageBox.Show($"""
+                             更新检查失败，请检查配置文件中的 `baseUpdateAddr` 是否正确，并确保没有设置系统代理
+                             错误信息: {ex.Message}
+
+                             错误回溯:
+                             {ex.StackTrace}
+                             """, "更新检查失败",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
     }
 
