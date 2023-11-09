@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Diagnostics.Eventing.Reader;
+using System.Net;
 using System.Net.NetworkInformation;
 using System.ServiceProcess;
 using Ae.Dns.Client;
@@ -11,12 +12,14 @@ namespace ServerProxy;
 public struct ServiceInfo
 {
     public bool IsStarted;
+    public bool IsExist;
     public ServiceStartMode StartType;
 }
 
 internal class Proxy
 {
-    public static ServiceInfo HnsOriginalStatus = new() { IsStarted = false, StartType = ServiceStartMode.Manual };
+    public static ServiceInfo HnsOriginalStatus = new() { IsStarted = false, IsExist = true, StartType = ServiceStartMode.Manual };
+    public static ServiceInfo sharedAccessOriginalStatus = new() { IsStarted = false, IsExist = true, StartType = ServiceStartMode.Manual };
     private readonly string _address;
     private readonly ServiceController _hnsController;
     private readonly ServiceController _sharedAccessController;
@@ -46,7 +49,16 @@ internal class Proxy
         // It is possible that the HNS service 
         // does not resume working when the program 
         // exits abnormally.
-        if (_hnsController.StartType == ServiceStartMode.Disabled)
+        try
+        {
+            _ = _hnsController.DisplayName;
+        }
+        catch (Exception ex)
+        {
+            HnsOriginalStatus.IsExist = false;
+        }
+
+        if (HnsOriginalStatus.IsExist && _hnsController.StartType == ServiceStartMode.Disabled)
         {
             var dialogResult = MessageBox.Show(
                 "检测到\"主机网络服务\"状态为\"禁用\"，这可能是因为上次没有正确关闭本程序引起的，如果属实，请点击\"是\"，程序将在退出时还原设置",
@@ -62,7 +74,7 @@ internal class Proxy
             try
             {
                 // Disable HNS when port is not available
-                if (_hnsController.Status == ServiceControllerStatus.Running)
+                if (HnsOriginalStatus.IsExist && _hnsController.Status == ServiceControllerStatus.Running)
                 {
                     if (Program._config.showMessageBoxOnStart)
                         MessageBox.Show(
@@ -82,7 +94,18 @@ internal class Proxy
                 }
                 else
                 {
-                    throw new Exception("UDP 53 端口被未知程序占用");
+                    try
+                    {
+                        _ = _sharedAccessController.DisplayName;
+                        sharedAccessOriginalStatus.IsStarted = true;
+                        _sharedAccessController.Stop();
+                        _sharedAccessController.WaitForStatus(ServiceControllerStatus.Stopped);
+                    }
+                    catch (Exception ex)
+                    {
+                        sharedAccessOriginalStatus.IsExist = false;
+                        MessageBox.Show("检测到 UDP 53 端口被未知程序占用，代理服务可能无法正常工作", "警告", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
                 }
             }
             catch (Exception ex)
@@ -137,12 +160,16 @@ internal class Proxy
     // ServiceRestore is a public void method that restores the service to its original status.
     public void ServiceRestore()
     {
-        if (!HnsOriginalStatus.IsStarted) return;
-        ServiceStartModeChanger.Change(_hnsController, HnsOriginalStatus.StartType);
+        if (!sharedAccessOriginalStatus.IsStarted || !sharedAccessOriginalStatus.IsExist) return;
+        ServiceStartModeChanger.Change(_sharedAccessController, _sharedAccessController.StartType);
         _sharedAccessController.Start();
         _sharedAccessController.WaitForStatus(ServiceControllerStatus.Running);
+
+        if (!HnsOriginalStatus.IsStarted || !HnsOriginalStatus.IsExist) return;
+        ServiceStartModeChanger.Change(_hnsController, HnsOriginalStatus.StartType);
         _hnsController.Start();
         _hnsController.WaitForStatus(ServiceControllerStatus.Running);
+
         if (_wslServiceController == null || _wslServiceController.Status == ServiceControllerStatus.Stopped) return;
         var result = MessageBox.Show(
             "在测试中我们发现 WSL 可能会在程序退出后可能无法正常启动，如果你也遇到了这个问题，请点击\"是\"，我们将在退出时进行修复，注意修复时 WSL 会被重启，请确保当前数据已经保存好",
