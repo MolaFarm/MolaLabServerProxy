@@ -11,6 +11,7 @@ internal static class ExceptionHandler
         MessageBox.Show($"""
                          程序遇到无法处理的异常，即将退出，请记录该错误信息并反馈给维护人员
                          错误信息: {ex.Message}
+                         内部错误: {ex.InnerException.Message}
 
                          错误回溯:
                          {ex.StackTrace}

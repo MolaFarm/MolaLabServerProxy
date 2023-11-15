@@ -5,6 +5,8 @@ using System.ServiceProcess;
 using Ae.Dns.Client;
 using Ae.Dns.Client.Filters;
 using Ae.Dns.Protocol;
+using Ae.Dns.Protocol.Enums;
+using Ae.Dns.Protocol.Records;
 using Ae.Dns.Server;
 
 namespace ServerProxy;
@@ -122,7 +124,8 @@ internal class Proxy
         httpClient.BaseAddress = new Uri(_address);
 
         IDnsFilter dnsFilter = new DnsDelegateFilter(x => true);
-        using IDnsClient dnsClient = new DnsHttpClient(httpClient);
+        bool isInInternalNet = await RouteHelper();
+        using IDnsClient dnsClient = new CustomDnsHttpClient(httpClient) { IsInInternalNet = isInInternalNet };
         using IDnsClient filterClient = new DnsFilterClient(dnsFilter, dnsClient);
 
         var serverOptions = new DnsUdpServerOptions
@@ -155,6 +158,36 @@ internal class Proxy
 
         await serverListener;
         await checker;
+    }
+
+    private async Task<bool> RouteHelper()
+    {
+        var handler = new HttpClientHandler();
+        handler.ClientCertificateOptions = ClientCertificateOption.Manual;
+        handler.ServerCertificateCustomValidationCallback =
+            (httpRequestMessage, cert, cetChain, policyErrors) => true;
+
+        using var httpClient = new HttpClient(handler);
+        httpClient.BaseAddress = new Uri(_address);
+
+        using IDnsClient dnsClient = new CustomDnsHttpClient(httpClient) { IsInInternalNet = true };
+            DnsMessage answer = await dnsClient.Query(DnsQueryFactory.CreateQuery("git.labserver.internal"));
+            if (answer.Answers[0].Type == DnsQueryType.A)
+            {
+                Console.WriteLine($"[DEBUG] Got internal DNS Record: {((DnsIpAddressResource)answer.Answers[0].Resource).IPAddress}");
+                using var httpGenerate204Client = new HttpClient(handler)
+                {
+                    BaseAddress =
+                        new Uri($"https://{((DnsIpAddressResource)answer.Answers[0].Resource).IPAddress}")
+                };
+                using HttpResponseMessage response = await httpGenerate204Client.GetAsync("generate_204");
+                if (response.StatusCode == HttpStatusCode.NoContent)
+                {
+                    return true;
+                }
+            }
+
+            return false;
     }
 
     // ServiceRestore is a public void method that restores the service to its original status.

@@ -2,25 +2,31 @@
 
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
-        <TargetFramework>net7.0-windows</TargetFramework>
+        <TargetFramework>net8.0-windows7.0</TargetFramework>
         <Nullable>enable</Nullable>
         <UseWindowsForms>True</UseWindowsForms>
         <ImplicitUsings>enable</ImplicitUsings>
         <PublishAot>true</PublishAot>
         <_SuppressWinFormsTrimError>true</_SuppressWinFormsTrimError>
         <ApplicationManifest>app.manifest</ApplicationManifest>
+        <TrimMode>Link</TrimMode>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <LangVersion>latest</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Ae.Dns.Client" Version="2.0.0"/>
-        <PackageReference Include="Ae.Dns.Server" Version="2.0.0"/>
+        <PackageReference Include="Ae.Dns.Server" Version="2.0.0" />
         <PackageReference Include="GitVersion.MsBuild" Version="5.12.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="System.ServiceProcess.ServiceController" Version="7.0.1"/>
-        <PackageReference Include="WinFormsComInterop" Version="0.4.3"/>
-        <PackageReference Include="System.Management" Version="7.0.2"/>
+        <PackageReference Include="System.ServiceProcess.ServiceController" Version="7.0.1" />
+        <PackageReference Include="WinFormsComInterop" Version="0.4.3" />
+        <PackageReference Include="System.Management" Version="7.0.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Ae.Dns.Client\Ae.Dns.Client.csproj" />
     </ItemGroup>
 
 </Project>

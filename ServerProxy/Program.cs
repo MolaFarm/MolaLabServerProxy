@@ -8,8 +8,6 @@ namespace ServerProxy;
 
 [JsonSourceGenerationOptions(WriteIndented = true)]
 [JsonSerializable(typeof(Config))]
-[JsonSerializable(typeof(bool))]
-[JsonSerializable(typeof(string))]
 internal partial class SourceGenerationContext : JsonSerializerContext
 {
 }

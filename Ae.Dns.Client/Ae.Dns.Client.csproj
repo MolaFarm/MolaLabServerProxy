@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>net8.0</TargetFrameworks>
+		<Version>2.1.0</Version>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<Authors>alanedwardes</Authors>
+		<Description>DNS over HTTPS (DoH) client, DNS UDP client and DNS caching client for .NET Core</Description>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageProjectUrl>https://github.com/alanedwardes/Ae.Dns</PackageProjectUrl>
+		<PackageTags>DNS;DoH;DNS Client;DNS UDP;DNS HTTP;DNS HTTPS</PackageTags>
+		<LangVersion>latest</LangVersion>
+	</PropertyGroup>
+
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0" />
+		<PackageReference Include="System.Runtime.Caching" Version="8.0.0" />
+		<PackageReference Include="System.Diagnostics.DiagnosticSource" Version="6.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Ae.Dns.Protocol\Ae.Dns.Protocol.csproj" />
+	</ItemGroup>
+
+</Project>
