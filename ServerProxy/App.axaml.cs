@@ -36,27 +36,29 @@ public class App : Application
             DataContext = new AppViewModel(ActualThemeVariant);
             ActualThemeVariantChanged += (s, e) => (DataContext as AppViewModel).RenderIcon(ActualThemeVariant);
 
-            // Start services
             if ((DataContext as AppViewModel).ShowDebugConsoleOnStart) DebugConsole.AllocConsole();
 
-            // Install Certificate
-            CertificateUtil.Install();
+            if (Program.MutexAvailability)
+            {
+                // Install Certificate
+                CertificateUtil.Install();
 
-            // Create Proxy
-            var config = (DataContext as AppViewModel).GetConfig;
-            SetStatus(Status.Starting);
-            _proxy = new DnsProxy($"https://{config.ServerIp}/", config);
-            _ = Task.Run(_proxy.StartAsync);
+                // Create Proxy
+                var config = (DataContext as AppViewModel).GetConfig;
+                SetStatus(Status.Starting);
+                _proxy = new DnsProxy($"https://{config.ServerIp}/", config);
+                _ = Task.Run(_proxy.StartAsync);
 
-            // Set DNS
-            _adapters = Adapter.ListAllInterface();
-            foreach (var adapter in _adapters) Adapter.CSetDns(adapter, "127.0.0.1", "::1");
+                // Set DNS
+                _adapters = Adapter.ListAllInterface();
+                foreach (var adapter in _adapters) Adapter.CSetDns(adapter, "127.0.0.1", "::1");
 
-            // Check for update
-            if (!config.CheckUpdate) return;
-            var updater = new Updater();
-            var updaterThread = new Thread(() => updater.CheckUpdate(config.BaseUpdateAddr));
-            updaterThread.Start();
+                // Check for update
+                if (!config.CheckUpdate) return;
+                var updater = new Updater();
+                var updaterThread = new Thread(() => updater.CheckUpdate(config.BaseUpdateAddr));
+                updaterThread.Start();
+            }
         }
 
         base.OnFrameworkInitializationCompleted();

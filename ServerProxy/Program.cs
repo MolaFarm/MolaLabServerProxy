@@ -11,6 +11,7 @@ namespace ServerProxy;
 
 internal static class Program
 {
+    public static bool MutexAvailability = false;
     private static AppBuilder _appBuilder;
 
     /// <summary>
@@ -19,18 +20,20 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        const string programUuid = "00079740-26a3-4732-9065-772e81ea93b5";
+
         var lifetime = new ClassicDesktopStyleApplicationLifetime
         {
             ShutdownMode = ShutdownMode.OnMainWindowClose
         };
-        _appBuilder = BuildAvaloniaApp().SetupWithLifetime(lifetime);
 
-        const string programUuid = "00079740-26a3-4732-9065-772e81ea93b5";
         try
         {
-            using (new Mutex(true, programUuid, out var createNew))
+            using (new Mutex(true, programUuid, out MutexAvailability))
             {
-                if (createNew)
+                _appBuilder = BuildAvaloniaApp().SetupWithLifetime(lifetime);
+
+                if (MutexAvailability)
                 {
                     lifetime.Start(args);
                 }
