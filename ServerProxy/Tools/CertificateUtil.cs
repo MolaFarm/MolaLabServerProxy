@@ -1,6 +1,8 @@
-﻿using System.Security.Cryptography.X509Certificates;
+﻿using System;
+using System.Security.Cryptography.X509Certificates;
+using MsBox.Avalonia.Enums;
 
-namespace ServerProxy;
+namespace ServerProxy.Tools;
 
 internal static class CertificateUtil
 {
@@ -19,11 +21,11 @@ internal static class CertificateUtil
             store.Open(OpenFlags.ReadOnly);
             var certificates = store.Certificates.Find(X509FindType.FindByThumbprint, thumbprint, false);
             if (certificates.Count != 0) return;
-            MessageBox.Show("没有检测到根证书，程序将自动安装证书", "注意", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show("注意", "没有检测到根证书，程序将自动安装证书", ButtonEnum.Ok, Icon.Warning);
             X509Certificate2 certificate = new(rootCa);
             store.Open(OpenFlags.ReadWrite);
             store.Add(certificate);
-            MessageBox.Show("证书已被成功安装", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("提示", "证书已被成功安装", ButtonEnum.Ok, Icon.Info);
         }
         catch (Exception ex)
         {

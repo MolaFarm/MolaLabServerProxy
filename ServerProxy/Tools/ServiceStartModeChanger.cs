@@ -1,7 +1,8 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.ServiceProcess;
 
-namespace ServerProxy;
+namespace ServerProxy.Tools;
 
 internal static class ServiceStartModeChanger
 {

@@ -1,4 +1,4 @@
-image: host.docker.internal:5000/bigsaltyfishes/windows-2022-runner:dotnet7.0
+image: host.docker.internal:5000/bigsaltyfishes/windows-2022-runner:dotnet8.0
 
 stages:
   - build
@@ -6,8 +6,8 @@ stages:
 
 variables:
   PROJECT_DIR: ServerProxy
-  RELEASE_DIR: ServerProxy/bin/Release/net7.0-windows
-  ARTIFACTS_DIR: ServerProxy/bin/Release/net7.0-windows
+  RELEASE_DIR: ServerProxy/publish
+  ARTIFACTS_DIR: ServerProxy/publish
   GIT_SSL_NO_VERIFY: "true"
 
 build-win-x64:
@@ -18,12 +18,16 @@ build-win-x64:
   before_script:
     - git fetch --unshallow --all
   script:
+    - msbuild .\ServerProxy.sln -target:ToastNotification /p:Configuration=Release /p:Platform=x64
     - cd $PROJECT_DIR
-    - dotnet publish -r win-x64 -c Release /p:EnableWindowsTargeting=true
+    - dotnet publish -r win-x64 -c Release -o .\x64
+    - rm .\x64\*.pdb
+    - rm .\x64\*.json
+    - rm .\x64\*.xml
     - Add-Content -Path "JOBID64" -Value "$CI_JOB_ID"
   artifacts:
     paths:
-      - $ARTIFACTS_DIR/win-x64/publish
+      - $ARTIFACTS_DIR/x64
       - $PROJECT_DIR/JOBID64
 
 build-win-arm64:
@@ -34,12 +38,16 @@ build-win-arm64:
   before_script:
     - git fetch --unshallow --all
   script:
+    - msbuild .\ServerProxy.sln -target:ToastNotification /p:Configuration=Release /p:Platform=ARM64
     - cd $PROJECT_DIR
-    - dotnet publish -r win-arm64 -c Release /p:EnableWindowsTargeting=true
+    - dotnet publish -r win-arm64 -c Release -o ./arm64
+    - rm .\arm64\*.pdb
+    - rm .\arm64\*.json
+    - rm .\arm64\*.xml
     - Add-Content -Path "JOBIDAA64" -Value "$CI_JOB_ID"
   artifacts:
     paths:
-      - $ARTIFACTS_DIR/win-arm64/publish
+      - $ARTIFACTS_DIR/arm64
       - $PROJECT_DIR/JOBIDAA64
 
 publish:

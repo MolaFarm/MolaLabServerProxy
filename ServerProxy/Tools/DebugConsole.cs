@@ -1,8 +1,8 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace ServerProxy;
+namespace ServerProxy.Tools;
 
-internal class DebugConsole
+internal static class DebugConsole
 {
     /// <summary>
     ///     Allocates a new console for current process.

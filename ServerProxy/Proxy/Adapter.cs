@@ -1,9 +1,12 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Management;
 using System.Net;
 using System.Net.NetworkInformation;
 
-namespace ServerProxy;
+namespace ServerProxy.Proxy;
 
 using AdapterDNS = Dictionary<NetworkInterface, List<IPAddress>>;
 
@@ -20,7 +23,7 @@ internal class Adapter
 
         foreach (var adapter in nics)
         {
-            var Pd1 = adapter.NetworkInterfaceType == NetworkInterfaceType.Ethernet ||
+            var pd1 = adapter.NetworkInterfaceType == NetworkInterfaceType.Ethernet ||
                       adapter.NetworkInterfaceType == NetworkInterfaceType.Wireless80211;
             if (!IsVirtualNetworkAdapter(adapter) && IsActivateNetworkAdapter(adapter) &&
                 adapter.NetworkInterfaceType != NetworkInterfaceType.Loopback) res.Add(adapter);
@@ -58,41 +61,41 @@ internal class Adapter
     /// </summary>
     /// <param name="adapter"></param>
     /// <param name="newDnsAddress"></param>
-    public static void SetDNS(NetworkInterface adapter, string[] newDnsAddress)
+    public static void SetDns(NetworkInterface adapter, string[] newDnsAddress)
     {
         AdapterDNS old = new();
-        var objMC = new ManagementClass("Win32_NetworkAdapterConfiguration");
-        var objMOC = objMC.GetInstances();
+        var objMc = new ManagementClass("Win32_NetworkAdapterConfiguration");
+        var objMoc = objMc.GetInstances();
 
-        foreach (ManagementObject objMO in objMOC)
-            if (objMO["Caption"].ToString().Contains(adapter.Description))
+        foreach (ManagementObject objMo in objMoc)
+            if (objMo["Caption"].ToString().Contains(adapter.Description))
             {
-                old.Add(adapter, GetAdapterDNS(adapter));
+                old.Add(adapter, GetAdapterDns(adapter));
 
-                var objdns = objMO.GetMethodParameters("SetDNSServerSearchOrder");
+                var objdns = objMo.GetMethodParameters("SetDNSServerSearchOrder");
                 if (objdns == null) continue;
                 objdns["DNSServerSearchOrder"] = newDnsAddress;
-                var res = objMO.InvokeMethod("SetDNSServerSearchOrder", objdns, null);
+                var res = objMo.InvokeMethod("SetDNSServerSearchOrder", objdns, null);
                 var statuscode = (uint)res["ReturnValue"];
                 if (statuscode != 0)
                     throw new Exception($"Unable to change DNS, status code:{statuscode.ToString()}");
             }
     }
 
-    public static void ResetAdapterDNS(NetworkInterface adapter)
+    public static void ResetAdapterDns(NetworkInterface adapter)
     {
-        SetDNS(adapter, null);
+        SetDns(adapter, null);
     }
 
-    public static void SetAdapterDNS(NetworkInterface adapter, string newdns)
+    public static void SetAdapterDns(NetworkInterface adapter, string newdns)
     {
         var olddns = adapter.GetIPProperties().DnsAddresses[0];
         string[] newdnslist = { newdns, olddns.ToString() };
 
-        SetDNS(adapter, newdnslist);
+        SetDns(adapter, newdnslist);
     }
 
-    public static AdapterDNS GetAdapterDNS(List<NetworkInterface> aa)
+    public static AdapterDNS GetAdapterDns(List<NetworkInterface> aa)
     {
         AdapterDNS res = new();
 
@@ -105,7 +108,7 @@ internal class Adapter
         return res;
     }
 
-    public static List<IPAddress> GetAdapterDNS(NetworkInterface ni)
+    public static List<IPAddress> GetAdapterDns(NetworkInterface ni)
     {
         var ip = ni.GetIPProperties();
         return ni.GetIPProperties().DnsAddresses.ToList();

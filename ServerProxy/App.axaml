@@ -1,0 +1,60 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ServerProxy.ViewModels"
+             x:DataType="vm:AppViewModel"
+             x:Class="ServerProxy.App"
+             xmlns:local="using:ServerProxy"
+             xmlns:controls="clr-namespace:ServerProxy.Controls"
+             RequestedThemeVariant="Default">
+    <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+
+    <Application.DataTemplates>
+        <local:ViewLocator />
+    </Application.DataTemplates>
+
+    <Application.Styles>
+        <FluentTheme />
+    </Application.Styles>
+
+    <Application.Resources>
+        <StreamGeometry x:Key="CheckmarkRegular">M4.03033009,13.4696699 C3.73743687,13.1767767 3.26256313,13.1767767 2.96966991,13.4696699 C2.6767767,13.7625631 2.6767767,14.2374369 2.96966991,14.5303301 L9.96966991,21.5303301 C10.2625631,21.8232233 10.7374369,21.8232233 11.0303301,21.5303301 L25.0303301,7.53033009 C25.3232233,7.23743687 25.3232233,6.76256313 25.0303301,6.46966991 C24.7374369,6.1767767 24.2625631,6.1767767 23.9696699,6.46966991 L10.5,19.9393398 L4.03033009,13.4696699 Z</StreamGeometry>
+    </Application.Resources>
+
+    <TrayIcon.Icons>
+        <TrayIcons>
+            <TrayIcon Icon="/Assets/avalonia-logo.ico"
+                      ToolTipText="{Binding StatusMessage, StringFormat='代理服务&#x0a;服务状态：{0}', Mode=OneWay}">
+                <TrayIcon.Menu>
+                    <NativeMenu>
+                        <NativeMenuItem Header="设置">
+                            <NativeMenu>
+                                <controls:CustomMenuItem Name="CheckUpdate" Header="启动时检查更新"
+                                                         Icon="{Binding CheckUpdateCheckIcon}" ToggleType="CheckBox"
+                                                         IsChecked="{Binding CheckUpdate}"
+                                                         Click="NativeMenuItem_OnChecked" />
+                                <controls:CustomMenuItem Name="ShowMessageBoxOnStart" Header="启动时检测到冲突时弹窗提示"
+                                                         Icon="{Binding ShowMessageBoxOnStartCheckIcon}"
+                                                         ToggleType="CheckBox"
+                                                         IsChecked="{Binding ShowMessageBoxOnStart}"
+                                                         Click="NativeMenuItem_OnChecked" />
+                                <controls:CustomMenuItem Name="ShowDebugConsoleOnStart" Header="启动时同时启动 DEBUG 终端"
+                                                         Icon="{Binding ShowDebugConsoleOnStartCheckIcon}"
+                                                         ToggleType="CheckBox"
+                                                         IsChecked="{Binding ShowDebugConsoleOnStart}"
+                                                         Click="NativeMenuItem_OnChecked" />
+                            </NativeMenu>
+                        </NativeMenuItem>
+                        <NativeMenuItem Header="快速访问服务器">
+                            <NativeMenu>
+                                <NativeMenuItem Header="GitLab" Click="FastAccess_OnClicked" />
+                                <NativeMenuItem Header="Coder" Click="FastAccess_OnClicked" />
+                                <NativeMenuItem Header="NextCloud" Click="FastAccess_OnClicked" />
+                            </NativeMenu>
+                        </NativeMenuItem>
+                        <NativeMenuItem Header="退出" Click="NativeMenuItem_OnClick" />
+                    </NativeMenu>
+                </TrayIcon.Menu>
+            </TrayIcon>
+        </TrayIcons>
+    </TrayIcon.Icons>
+</Application>

@@ -1,4 +1,4 @@
-﻿namespace ServerProxy;
+﻿namespace ServerProxy.Proxy;
 
 public enum Status
 {

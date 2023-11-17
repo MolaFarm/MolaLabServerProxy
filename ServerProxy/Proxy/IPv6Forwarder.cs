@@ -1,15 +1,18 @@
+using System;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace ServerProxy;
+namespace ServerProxy.Proxy;
 
-internal class DNSProxy
+internal class IPv6Forwarder
 {
     /// <summary>
     ///     Milliseconds
     /// </summary>
-    public int ConnectionTimeout { get; set; } = 4 * 60 * 1000;
+    private int ConnectionTimeout { get; } = 4 * 60 * 1000;
 
     public async Task Start(IPAddress remoteIp, ushort remotePort, IPAddress localIp, ushort localPort)
     {
@@ -23,7 +26,7 @@ internal class DNSProxy
 
         Console.WriteLine($"UDP proxy started [{localIp}]:{localPort} -> [{remoteIp}]:{remotePort}");
 
-        var _ = Task.Run(async () =>
+        _ = Task.Run(async () =>
         {
             while (true)
             {

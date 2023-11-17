@@ -1,64 +1,43 @@
-﻿using System.Runtime.InteropServices;
-using System.Security.Principal;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using WinFormsComInterop;
+﻿using System;
+using System.Threading;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.ReactiveUI;
+using MsBox.Avalonia.Enums;
+using ServerProxy.Tools;
 
 namespace ServerProxy;
 
-[JsonSourceGenerationOptions(WriteIndented = true)]
-[JsonSerializable(typeof(Config))]
-internal partial class SourceGenerationContext : JsonSerializerContext
-{
-}
-
 internal static class Program
 {
-    public static Config _config;
+    private static AppBuilder _appBuilder;
 
     /// <summary>
     ///     The main entry point for the application.
     /// </summary>
     [STAThread]
-    private static void Main()
+    private static void Main(string[] args)
     {
-        // To customize application configuration such as set high DPI settings or default font,
-        // see https://aka.ms/applicationconfiguration.
+        var lifetime = new ClassicDesktopStyleApplicationLifetime
+        {
+            ShutdownMode = ShutdownMode.OnMainWindowClose
+        };
+        _appBuilder = BuildAvaloniaApp().SetupWithLifetime(lifetime);
+
         const string programUuid = "00079740-26a3-4732-9065-772e81ea93b5";
         try
         {
-            ComWrappers.RegisterForMarshalling(WinFormsComWrappers.Instance);
-            ApplicationConfiguration.Initialize();
-
-            var identity = WindowsIdentity.GetCurrent();
-            var principal = new WindowsPrincipal(identity);
-
-            bool createNew;
-            using (var mutex = new Mutex(true, programUuid, out createNew))
+            using (new Mutex(true, programUuid, out var createNew))
             {
                 if (createNew)
                 {
-                    // Read config
-                    var rawConf = "{}";
-                    try
-                    {
-                        rawConf = File.ReadAllText(Application.StartupPath + "/config.json");
-                    }
-                    catch (Exception ex)
-                    {
-                        // ignored
-                    }
-                    finally
-                    {
-                        _config = JsonSerializer.Deserialize(rawConf, SourceGenerationContext.Default.Config);
-                    }
-
-                    Application.Run(new Form1());
+                    lifetime.Start(args);
                 }
                 else
                 {
-                    MessageBox.Show("程序已在运行，不允许同时允许多个程序实例", "检测到互斥锁", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    Application.Exit();
+                    MessageBox.Show("检测到互斥锁", "程序已在运行，不允许同时允许多个程序实例", ButtonEnum.Ok, Icon.Error);
+                    Environment.Exit(-1);
                 }
             }
         }
@@ -66,5 +45,15 @@ internal static class Program
         {
             ExceptionHandler.Handle(ex);
         }
+    }
+
+    // Avalonia configuration, don't remove; also used by visual designer.
+    public static AppBuilder BuildAvaloniaApp()
+    {
+        return AppBuilder.Configure<App>()
+            .UsePlatformDetect()
+            .WithInterFont()
+            .LogToTrace()
+            .UseReactiveUI();
     }
 }

@@ -101,7 +101,7 @@ namespace Ae.Dns.Client
                     filteredAnswers.Add(record);
                 }
                 else if (!IsInInternalNet && res.IPAddress.AddressFamily == AddressFamily.InterNetwork &&
-                         !res.IPAddress.ToString().StartsWith("IP_ADDRESS_START_HERE."))
+                         !res.IPAddress.ToString().StartsWith("IP_ADDRESS_START_HERE.") && !res.IPAddress.ToString().StartsWith("10."))
                 {
                     filteredAnswers.Add(record);
                 }
