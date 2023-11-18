@@ -1,17 +1,26 @@
 ﻿using System;
+using System.Text.Json.Serialization;
 using System.Threading;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.ReactiveUI;
 using MsBox.Avalonia.Enums;
+using ServerProxy.Broadcast;
 using ServerProxy.Tools;
 
 namespace ServerProxy;
 
+[JsonSourceGenerationOptions(WriteIndented = true)]
+[JsonSerializable(typeof(BroadCastMessage))]
+[JsonSerializable(typeof(Config))]
+internal partial class SourceGenerationContext : JsonSerializerContext
+{
+}
+
 internal static class Program
 {
-    public static bool MutexAvailability = false;
+    public static bool MutexAvailability;
     private static AppBuilder _appBuilder;
 
     /// <summary>

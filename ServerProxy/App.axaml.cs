@@ -10,6 +10,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using ServerProxy.Broadcast;
 using ServerProxy.Controls;
 using ServerProxy.Proxy;
 using ServerProxy.Tools;
@@ -20,6 +21,7 @@ namespace ServerProxy;
 public class App : Application
 {
     private static DnsProxy _proxy;
+    private static Receiver _receiver;
     private static List<NetworkInterface> _adapters;
     public static Status ServiceStatus = Status.Starting;
     public static bool IsOnExit;
@@ -40,11 +42,16 @@ public class App : Application
 
             if (Program.MutexAvailability)
             {
+                var config = (DataContext as AppViewModel).AppConfig;
+
                 // Install Certificate
                 CertificateUtil.Install();
 
+                // Register Broadcast Receiver
+                _receiver = new Receiver(new Uri($"https://{config.ServerIp}/"));
+                _ = Task.Run(_receiver.ReceiveBroadcastAsync);
+
                 // Create Proxy
-                var config = (DataContext as AppViewModel).GetConfig;
                 SetStatus(Status.Starting);
                 _proxy = new DnsProxy($"https://{config.ServerIp}/", config);
                 _ = Task.Run(_proxy.StartAsync);
@@ -116,9 +123,7 @@ public class App : Application
                 break;
         }
 
-        var configString = JsonSerializer.Serialize((DataContext as AppViewModel).GetConfig,
-            SourceGenerationContext.Default.Config);
-        File.WriteAllText(Path.GetDirectoryName(Environment.ProcessPath) + "/config.json", configString);
+        WriteConfig();
     }
 
     private void FastAccess_OnClicked(object? sender, EventArgs e)
@@ -134,5 +139,29 @@ public class App : Application
         };
 
         Process.Start(new ProcessStartInfo(addr) { UseShellExecute = true });
+    }
+
+    private void ReadBroadCastMessage(object? sender, EventArgs e)
+    {
+        if (_receiver.Message == null)
+        {
+            MessageBox.Show("广播信息", "没有来自服务器的通知");
+            return;
+        }
+
+        _receiver.Message.Show();
+        var currentBroadCastTime = _receiver.CurrentBroadCastTime.ToString("O");
+        if ((DataContext as AppViewModel).AppConfig.LastReadBroadCast != currentBroadCastTime)
+        {
+            (DataContext as AppViewModel).AppConfig.LastReadBroadCast = currentBroadCastTime;
+            WriteConfig();
+        }
+    }
+
+    private void WriteConfig()
+    {
+        var configString = JsonSerializer.Serialize((DataContext as AppViewModel).AppConfig,
+            SourceGenerationContext.Default.Config);
+        File.WriteAllText(Path.GetDirectoryName(Environment.ProcessPath) + "/config.json", configString);
     }
 }

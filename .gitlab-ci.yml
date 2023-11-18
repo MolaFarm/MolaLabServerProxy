@@ -27,7 +27,7 @@ build-win-x64:
     - Add-Content -Path "JOBID64" -Value "$CI_JOB_ID"
   artifacts:
     paths:
-      - $ARTIFACTS_DIR/x64
+      - $PROJECT_DIR/x64
       - $PROJECT_DIR/JOBID64
 
 build-win-arm64:
@@ -47,7 +47,7 @@ build-win-arm64:
     - Add-Content -Path "JOBIDAA64" -Value "$CI_JOB_ID"
   artifacts:
     paths:
-      - $ARTIFACTS_DIR/arm64
+      - $PROJECT_DIR/arm64
       - $PROJECT_DIR/JOBIDAA64
 
 publish:

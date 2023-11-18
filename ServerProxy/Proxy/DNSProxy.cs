@@ -112,7 +112,7 @@ internal class DnsProxy
 
         var isInInternalNet = await RouteHelper();
         if (!isInInternalNet)
-            Tools.Notification.Show("警告", "由于校园网线路不可用，将使用公网线路，连接速度和质量将受到影响");
+            Notification.Show("警告", "由于校园网线路不可用，将使用公网线路，连接速度和质量将受到影响");
 
         _httpClientInstance = new HttpClient(handler) { BaseAddress = new Uri(_address) };
         _dnsFilter = new DnsDelegateFilter(x => true);
@@ -139,7 +139,7 @@ internal class DnsProxy
             Console.WriteLine("Ipv6 disable, DNS proxy will not start");
         }
 
-        Tools.Notification.Show("代理服务", "代理服务已启动");
+        Notification.Show("代理服务", "代理服务已启动");
 
         await serverListener;
     }
@@ -277,11 +277,11 @@ internal class DnsProxy
                     switch (currentStatus)
                     {
                         case Status.Healthy:
-                            Tools.Notification.Show("提示", "代理服务状态: 健康");
+                            Notification.Show("提示", "代理服务状态: 健康");
                             Console.WriteLine("Healthy!");
                             break;
                         case Status.UnHealthy:
-                            Tools.Notification.Show("警告", "代理服务状态: 连接阻塞");
+                            Notification.Show("警告", "代理服务状态: 连接阻塞");
                             Console.WriteLine("UnHealthy!");
                             break;
                     }

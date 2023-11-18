@@ -17,15 +17,4 @@ internal class Awaiter
         Dispatcher.UIThread.PushFrame(frame);
         return task.Result;
     }
-
-    public static void AwaitByPushFrame(Task task)
-    {
-        if (task == null) throw new ArgumentNullException(nameof(task));
-        Contract.EndContractBlock();
-
-        var frame = new DispatcherFrame();
-        task.ContinueWith(t => { frame.Continue = false; });
-        Dispatcher.UIThread.PushFrame(frame);
-        Task.WaitAny(task);
-    }
 }

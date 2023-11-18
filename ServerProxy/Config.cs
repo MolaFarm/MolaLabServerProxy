@@ -2,6 +2,7 @@
 
 public class Config
 {
+    public string LastReadBroadCast { get; set; } = "";
     public string ServerIp { get; set; }; // Set the default server IP here.
     public string BaseUpdateAddr { get; set; } = "https://git.labserver.internal";
     public bool CheckUpdate { get; set; } = true;

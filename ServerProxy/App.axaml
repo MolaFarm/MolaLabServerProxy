@@ -51,6 +51,7 @@
                                 <NativeMenuItem Header="NextCloud" Click="FastAccess_OnClicked" />
                             </NativeMenu>
                         </NativeMenuItem>
+                        <NativeMenuItem Header="查看来自服务器的广播" Click="ReadBroadCastMessage" />
                         <NativeMenuItem Header="退出" Click="NativeMenuItem_OnClick" />
                     </NativeMenu>
                 </TrayIcon.Menu>
