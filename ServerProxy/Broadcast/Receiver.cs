@@ -10,9 +10,10 @@ using ServerProxy.ViewModels;
 
 namespace ServerProxy.Broadcast;
 
-internal class Receiver(Uri baseaddr)
+public class Receiver(Uri baseaddr)
 {
     public DateTime CurrentBroadCastTime = DateTime.MinValue;
+    public bool IsReceivedOnce;
     public BroadCastMessage? Message;
 
     private HttpClient CreateHttpClient()
@@ -72,9 +73,21 @@ internal class Receiver(Uri baseaddr)
                             Message.ForceUpdateTagName);
                         if (!targetVersion.CommitSha.Equals(currentVersion.CommitSha))
                         {
-                            App.UpdaterInstance.LaunchUpdater(targetVersion);
+                            await App.UpdaterTokenSource.CancelAsync();
+                            try
+                            {
+                                Updater.LaunchUpdater(targetVersion, true);
+                            }
+                            catch (Exception ex)
+                            {
+                                await App.ProxyTokenSource.CancelAsync();
+                                ExceptionHandler.Handle(ex);
+                            }
+
+                            if (!App.ProxyTokenSource.IsCancellationRequested) await App.ProxyTokenSource.CancelAsync();
                             MessageBox.Show("服务器云控",
                                 $"收到服务器强制更新要求，程序将自动更新！\n\n目标版本哈希：{targetVersion.CommitSha}\n释出日期：{targetVersion.ReleaseDate}");
+                            Dispatcher.UIThread.Invoke(App.OnExit);
                         }
                     }
 
@@ -92,6 +105,7 @@ internal class Receiver(Uri baseaddr)
                 Message.Datetime = responseData.TrimEnd();
             }
 
+            IsReceivedOnce = true;
             await Task.Delay(10000);
         }
     }

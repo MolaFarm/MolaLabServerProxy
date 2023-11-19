@@ -2,7 +2,7 @@
 
 namespace ServerProxy.Broadcast;
 
-internal class BroadCastMessage
+public class BroadCastMessage
 {
     public string Title { get; set; }
     public string Body { get; set; }

@@ -8,13 +8,15 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Text.Json;
-using System.Threading;
+using System.Threading.Tasks;
 using Ae.Dns.Client;
 using Ae.Dns.Protocol;
 using Ae.Dns.Protocol.Records;
+using Avalonia;
 using Avalonia.Threading;
 using MsBox.Avalonia.Enums;
 using ServerProxy.Proxy;
+using ServerProxy.ViewModels;
 
 namespace ServerProxy.Tools;
 
@@ -31,11 +33,11 @@ public class Updater(string baseAddress)
     private const int ProjectID = 80;
     private readonly Architecture _currentArchitecture = RuntimeInformation.ProcessArchitecture;
 
-    public void CheckUpdate()
+    public async Task CheckUpdate()
     {
         try
         {
-            Check();
+            await Check();
         }
         catch (Exception ex)
         {
@@ -51,13 +53,13 @@ public class Updater(string baseAddress)
         }
     }
 
-    private void Check()
+    private async Task Check()
     {
         // Wait for DNS Ready
-        while (App.ServiceStatus != Status.Healthy)
+        while (App.ServiceStatus != Status.Healthy || !App.BroadcastReceiver.IsReceivedOnce)
         {
             if (App.IsOnExit) return;
-            Thread.Sleep(1000);
+            await Task.Delay(1000);
         }
 
         var latestVersion = GetVersionInfo(out var currentVersion);
@@ -133,11 +135,29 @@ public class Updater(string baseAddress)
         return targetVersion ?? throw new InvalidOperationException("No matching version found");
     }
 
-    public void LaunchUpdater(VersionInfo versionInfo)
+    public static void LaunchUpdater(VersionInfo versionInfo, bool force = false)
     {
-        using IDnsClient dnsClient = new DnsUdpClient(IPAddress.Loopback);
-        var answer = Dispatcher.UIThread.Invoke(() => Awaiter.AwaitByPushFrame(
-            dnsClient.Query(DnsQueryFactory.CreateQuery("git.labserver.internal"))));
+        DnsMessage? answer;
+        try
+        {
+            using IDnsClient dnsClient = new DnsUdpClient(IPAddress.Loopback);
+            answer = Dispatcher.UIThread.Invoke(() => Awaiter.AwaitByPushFrame(
+                dnsClient.Query(DnsQueryFactory.CreateQuery("git.labserver.internal"))));
+        }
+        catch (Exception ex)
+        {
+            if (!force) throw;
+            var handler = new HttpClientHandler
+            {
+                ClientCertificateOptions = ClientCertificateOption.Manual,
+                ServerCertificateCustomValidationCallback = (httpRequestMessage, cert, cetChain, policyErrors) => true
+            };
+            using IDnsClient dnsClient = new CustomDnsHttpClient(new HttpClient(handler)
+                { BaseAddress = new Uri((Application.Current.DataContext as AppViewModel).AppConfig.ServerIp) });
+            answer = Dispatcher.UIThread.Invoke(() => Awaiter.AwaitByPushFrame(
+                dnsClient.Query(DnsQueryFactory.CreateQuery("git.labserver.internal"))));
+        }
+
         if (answer.Answers.Count == 0) throw new Exception("无法找到服务器 IP 地址");
         Process.Start(new ProcessStartInfo
         {

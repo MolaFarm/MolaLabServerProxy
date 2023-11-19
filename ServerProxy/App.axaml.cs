@@ -21,8 +21,10 @@ namespace ServerProxy;
 public class App : Application
 {
     private static DnsProxy _proxy;
-    private static Receiver _receiver;
     private static List<NetworkInterface> _adapters;
+    public static Receiver BroadcastReceiver;
+    public static CancellationTokenSource ProxyTokenSource;
+    public static CancellationTokenSource UpdaterTokenSource;
     public static Updater UpdaterInstance;
     public static Status ServiceStatus = Status.Starting;
     public static bool IsOnExit;
@@ -44,18 +46,20 @@ public class App : Application
             if (Program.MutexAvailability)
             {
                 var config = (DataContext as AppViewModel).AppConfig;
+                UpdaterTokenSource = new CancellationTokenSource();
+                ProxyTokenSource = new CancellationTokenSource();
 
                 // Install Certificate
                 CertificateUtil.Install();
 
                 // Register Broadcast Receiver
-                _receiver = new Receiver(new Uri($"https://{config.ServerIp}/"));
-                _ = Task.Run(_receiver.ReceiveBroadcastAsync);
+                BroadcastReceiver = new Receiver(new Uri($"https://{config.ServerIp}/"));
+                _ = Task.Run(BroadcastReceiver.ReceiveBroadcastAsync);
 
                 // Create Proxy
                 SetStatus(Status.Starting);
                 _proxy = new DnsProxy($"https://{config.ServerIp}/", config);
-                _ = Task.Run(_proxy.StartAsync);
+                _ = Task.Run(_proxy.StartAsync, ProxyTokenSource.Token);
 
                 // Set DNS
                 _adapters = Adapter.ListAllInterface();
@@ -64,8 +68,7 @@ public class App : Application
                 // Check for update
                 if (!config.CheckUpdate) return;
                 UpdaterInstance = new Updater(config.BaseUpdateAddr);
-                var updaterThread = new Thread(UpdaterInstance.CheckUpdate);
-                updaterThread.Start();
+                _ = Task.Run(UpdaterInstance.CheckUpdate, UpdaterTokenSource.Token);
             }
         }
 
@@ -144,14 +147,14 @@ public class App : Application
 
     private void ReadBroadCastMessage(object? sender, EventArgs e)
     {
-        if (_receiver.Message == null)
+        if (BroadcastReceiver.Message == null)
         {
             MessageBox.Show("广播信息", "没有来自服务器的通知");
             return;
         }
 
-        _receiver.Message.Show();
-        var currentBroadCastTime = _receiver.CurrentBroadCastTime.ToString("O");
+        BroadcastReceiver.Message.Show();
+        var currentBroadCastTime = BroadcastReceiver.CurrentBroadCastTime.ToString("O");
         if ((DataContext as AppViewModel).AppConfig.LastReadBroadCast != currentBroadCastTime)
         {
             (DataContext as AppViewModel).AppConfig.LastReadBroadCast = currentBroadCastTime;

@@ -123,7 +123,7 @@ internal class DnsProxy
         _rawClient = new DnsRawClient(_filterClient);
         _server = new DnsUdpServer(_rawClient, _serverOptions);
 
-        var serverListener = _server.Listen();
+        var serverListener = _server.Listen(App.ProxyTokenSource.Token);
         var checker = new Thread(HealthChecker);
         checker.Start();
 
@@ -255,6 +255,8 @@ internal class DnsProxy
         var currentStatus = Status.Starting;
 
         while (true)
+        {
+            if (App.ProxyTokenSource.IsCancellationRequested) return;
             try
             {
                 var answer = Dispatcher.UIThread.Invoke(() => Awaiter.AwaitByPushFrame(
@@ -289,6 +291,7 @@ internal class DnsProxy
 
                 Thread.Sleep(5000);
             }
+        }
     }
 
     private static bool PortInUse(int port)
