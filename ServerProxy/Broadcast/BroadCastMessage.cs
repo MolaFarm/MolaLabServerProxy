@@ -7,6 +7,7 @@ internal class BroadCastMessage
     public string Title { get; set; }
     public string Body { get; set; }
     public string Datetime { get; set; }
+    public string? ForceUpdateTagName { get; set; } = null;
 
     public void Show()
     {

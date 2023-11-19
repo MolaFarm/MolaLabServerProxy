@@ -19,8 +19,11 @@ build-win-x64:
     - git fetch --unshallow --all
   script:
     - msbuild .\ServerProxy.sln -target:ToastNotification /p:Configuration=Release /p:Platform=x64
-    - cd $PROJECT_DIR
+    - cd Updater
     - dotnet publish -r win-x64 -c Release -o .\x64
+    - cd ..\$PROJECT_DIR
+    - dotnet publish -r win-x64 -c Release -o .\x64
+    - cp -r ..\Updater\x64\* .\x64\
     - rm .\x64\*.pdb
     - rm .\x64\*.json
     - rm .\x64\*.xml
@@ -39,8 +42,11 @@ build-win-arm64:
     - git fetch --unshallow --all
   script:
     - msbuild .\ServerProxy.sln -target:ToastNotification /p:Configuration=Release /p:Platform=ARM64
-    - cd $PROJECT_DIR
-    - dotnet publish -r win-arm64 -c Release -o ./arm64
+    - cd Updater
+    - dotnet publish -r win-arm64 -c Release -o .\arm64
+    - cd ..\$PROJECT_DIR
+    - dotnet publish -r win-arm64 -c Release -o .\arm64
+    - cp -r ..\Updater\arm64\* .\arm64\
     - rm .\arm64\*.pdb
     - rm .\arm64\*.json
     - rm .\arm64\*.xml

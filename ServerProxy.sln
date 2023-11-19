@@ -4,12 +4,19 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.8.34309.116
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServerProxy", "ServerProxy\ServerProxy.csproj", "{4348541A-E204-46E1-A111-456EBBB4242E}"
+	ProjectSection(ProjectDependencies) = postProject
+		{1C12D49B-8423-4F7A-97D2-84269FCF7C7E} = {1C12D49B-8423-4F7A-97D2-84269FCF7C7E}
+		{3ED05468-32F9-407C-81BD-A601201D29BB} = {3ED05468-32F9-407C-81BD-A601201D29BB}
+		{EDA79E01-5A54-4ED1-A351-AF5DAA081E95} = {EDA79E01-5A54-4ED1-A351-AF5DAA081E95}
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ae.Dns.Client", "Ae.Dns.Client\Ae.Dns.Client.csproj", "{1C5B63F4-8B68-4D9A-B61C-A028128280E1}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ae.Dns.Protocol", "Ae.Dns.Protocol\Ae.Dns.Protocol.csproj", "{3ED05468-32F9-407C-81BD-A601201D29BB}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ToastNotification", "ToastNotification\ToastNotification.vcxproj", "{1C12D49B-8423-4F7A-97D2-84269FCF7C7E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Updater", "Updater\Updater.csproj", "{EDA79E01-5A54-4ED1-A351-AF5DAA081E95}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -87,6 +94,22 @@ Global
 		{1C12D49B-8423-4F7A-97D2-84269FCF7C7E}.Release|x64.Build.0 = Release|x64
 		{1C12D49B-8423-4F7A-97D2-84269FCF7C7E}.Release|x86.ActiveCfg = Release|Win32
 		{1C12D49B-8423-4F7A-97D2-84269FCF7C7E}.Release|x86.Build.0 = Release|Win32
+		{EDA79E01-5A54-4ED1-A351-AF5DAA081E95}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EDA79E01-5A54-4ED1-A351-AF5DAA081E95}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EDA79E01-5A54-4ED1-A351-AF5DAA081E95}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{EDA79E01-5A54-4ED1-A351-AF5DAA081E95}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{EDA79E01-5A54-4ED1-A351-AF5DAA081E95}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{EDA79E01-5A54-4ED1-A351-AF5DAA081E95}.Debug|x64.Build.0 = Debug|Any CPU
+		{EDA79E01-5A54-4ED1-A351-AF5DAA081E95}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{EDA79E01-5A54-4ED1-A351-AF5DAA081E95}.Debug|x86.Build.0 = Debug|Any CPU
+		{EDA79E01-5A54-4ED1-A351-AF5DAA081E95}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EDA79E01-5A54-4ED1-A351-AF5DAA081E95}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EDA79E01-5A54-4ED1-A351-AF5DAA081E95}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{EDA79E01-5A54-4ED1-A351-AF5DAA081E95}.Release|ARM64.Build.0 = Release|Any CPU
+		{EDA79E01-5A54-4ED1-A351-AF5DAA081E95}.Release|x64.ActiveCfg = Release|Any CPU
+		{EDA79E01-5A54-4ED1-A351-AF5DAA081E95}.Release|x64.Build.0 = Release|Any CPU
+		{EDA79E01-5A54-4ED1-A351-AF5DAA081E95}.Release|x86.ActiveCfg = Release|Any CPU
+		{EDA79E01-5A54-4ED1-A351-AF5DAA081E95}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

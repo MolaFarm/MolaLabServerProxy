@@ -1,10 +1,18 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading;
+using Ae.Dns.Client;
+using Ae.Dns.Protocol;
+using Ae.Dns.Protocol.Records;
+using Avalonia.Threading;
 using MsBox.Avalonia.Enums;
 using ServerProxy.Proxy;
 
@@ -14,19 +22,20 @@ public class VersionInfo
 {
     public string? CommitSha { get; set; }
     public DateTime ReleaseDate { get; set; }
-    public string? ReleasePage { get; set; }
+    public string? DownloadAddress { get; set; }
 }
 
-internal class Updater
+public class Updater(string baseAddress)
 {
     private const string AccessToken = "GITLAB_ACCESS_TOKEN_HERE";
-    private string _baseAddress;
+    private const int ProjectID = 80;
+    private readonly Architecture _currentArchitecture = RuntimeInformation.ProcessArchitecture;
 
-    public void CheckUpdate(string baseAddress)
+    public void CheckUpdate()
     {
         try
         {
-            Check(baseAddress);
+            Check();
         }
         catch (Exception ex)
         {
@@ -42,7 +51,7 @@ internal class Updater
         }
     }
 
-    private void Check(string baseAddress)
+    private void Check()
     {
         // Wait for DNS Ready
         while (App.ServiceStatus != Status.Healthy)
@@ -51,35 +60,7 @@ internal class Updater
             Thread.Sleep(1000);
         }
 
-        _baseAddress = baseAddress;
-        var info = FileVersionInfo.GetVersionInfo(Environment.ProcessPath);
-        var currentVersion = new VersionInfo
-        {
-            CommitSha = info.ProductVersion.Split("Sha.")[1]
-        };
-
-        using var client = CreateHttpClient();
-        const string url = "api/v4/projects/80/releases";
-        var response = client.GetAsync(url).Result;
-        response.EnsureSuccessStatusCode();
-        var resp = response.Content.ReadAsStringAsync().Result;
-        using var doc = JsonDocument.Parse(resp);
-
-        VersionInfo latestVersion = null;
-
-        foreach (var e in doc.RootElement.EnumerateArray())
-        {
-            latestVersion ??= new VersionInfo
-            {
-                CommitSha = e.GetProperty("commit").GetProperty("id").GetString(),
-                ReleaseDate = e.GetProperty("released_at").GetDateTime(),
-                ReleasePage =
-                    $"{_baseAddress}/ShadiaoLeYuan/ServerProxy/-/releases/{e.GetProperty("tag_name").GetString()}"
-            };
-
-            if (e.GetProperty("commit").GetProperty("id").GetString() == currentVersion.CommitSha)
-                currentVersion.ReleaseDate = e.GetProperty("released_at").GetDateTime();
-        }
+        var latestVersion = GetVersionInfo(out var currentVersion);
 
         if (DateTime.Compare(latestVersion.ReleaseDate, currentVersion.ReleaseDate) <= 0) return;
 
@@ -91,7 +72,7 @@ internal class Updater
             $"""
              {newVerMessage}
              我们建议新版本发布时尽快进行更新，以保证服务器能够正常访问
-             更新需要手动进行，当按下“是”时，程序将打开新版本下载页面，更新前务必记得退出程序
+             更新需要手动进行，当按下“是”时，程序将自动更新
 
              新版本哈希: {latestVersion.CommitSha}
              发布日期(UTC标准时间): {latestVersion.ReleaseDate.ToString(CultureInfo.InvariantCulture)}
@@ -99,7 +80,74 @@ internal class Updater
             currentVersion.ReleaseDate != DateTime.MinValue ? Icon.Info : Icon.Warning);
 
         if (result == ButtonResult.Yes)
-            Process.Start(new ProcessStartInfo(latestVersion.ReleasePage) { UseShellExecute = true });
+        {
+            LaunchUpdater(latestVersion);
+            Dispatcher.UIThread.Invoke(App.OnExit);
+        }
+    }
+
+    // New method to get version information
+    public VersionInfo GetVersionInfo(out VersionInfo currentVersion, string? tagName = null, string? commitSha = null)
+    {
+        using var client = CreateHttpClient();
+        var url = $"api/v4/projects/{ProjectID}/releases";
+        var response = Dispatcher.UIThread.Invoke(() => Awaiter.AwaitByPushFrame(client.GetAsync(url)));
+        response.EnsureSuccessStatusCode();
+        var resp = Dispatcher.UIThread.Invoke(() => Awaiter.AwaitByPushFrame(response.Content.ReadAsStringAsync()));
+        using var doc = JsonDocument.Parse(resp);
+        var info = FileVersionInfo.GetVersionInfo(Environment.ProcessPath);
+        VersionInfo? targetVersion = null;
+        currentVersion = new VersionInfo
+        {
+            CommitSha = info.ProductVersion.Split("Sha.")[1]
+        };
+
+        foreach (var e in doc.RootElement.EnumerateArray())
+        {
+            var downloadAddr = e.GetProperty("assets").GetProperty("links")
+                .EnumerateArray()
+                .FirstOrDefault(link =>
+                    (_currentArchitecture == Architecture.X64 && link.GetProperty("name").GetString() == "Win64") ||
+                    (_currentArchitecture == Architecture.Arm64 && link.GetProperty("name").GetString() == "ARM64"))
+                .GetProperty("url").GetString();
+
+            var versionInfo = new VersionInfo
+            {
+                CommitSha = e.GetProperty("commit").GetProperty("id").GetString(),
+                ReleaseDate = e.GetProperty("released_at").GetDateTime(),
+                DownloadAddress = downloadAddr
+            };
+
+            if ((tagName != null && tagName.Equals(e.GetProperty("tag_name").GetString())) ||
+                (commitSha != null && commitSha.Equals(versionInfo.CommitSha)) ||
+                (tagName == null && commitSha == null && targetVersion == null))
+                targetVersion = versionInfo;
+
+            if (e.GetProperty("commit").GetProperty("id").GetString() == currentVersion.CommitSha)
+                currentVersion.ReleaseDate = e.GetProperty("released_at").GetDateTime();
+
+            if (!currentVersion.ReleaseDate.Equals(DateTime.MinValue) && targetVersion != null) break;
+        }
+
+        // Return the first element if no specific tag or commitSha is provided
+        return targetVersion ?? throw new InvalidOperationException("No matching version found");
+    }
+
+    public void LaunchUpdater(VersionInfo versionInfo)
+    {
+        using IDnsClient dnsClient = new DnsUdpClient(IPAddress.Loopback);
+        var answer = Dispatcher.UIThread.Invoke(() => Awaiter.AwaitByPushFrame(
+            dnsClient.Query(DnsQueryFactory.CreateQuery("git.labserver.internal"))));
+        if (answer.Answers.Count == 0) throw new Exception("无法找到服务器 IP 地址");
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = $"{Path.GetDirectoryName(Environment.ProcessPath)}\\Updater.exe",
+            UseShellExecute = true,
+            Arguments =
+                $"{AccessToken} {ProjectID} {(answer.Answers[0].Resource as DnsIpAddressResource).IPAddress} {versionInfo.DownloadAddress} {Path.GetDirectoryName(Environment.ProcessPath)}",
+            CreateNoWindow = true,
+            WorkingDirectory = Path.GetDirectoryName(Environment.ProcessPath)
+        });
     }
 
     private HttpClient CreateHttpClient()
@@ -112,7 +160,7 @@ internal class Updater
 
         var client = new HttpClient(handler)
         {
-            BaseAddress = new Uri(_baseAddress)
+            BaseAddress = new Uri(baseAddress)
         };
 
         client.DefaultRequestHeaders.Add("PRIVATE-TOKEN", AccessToken);

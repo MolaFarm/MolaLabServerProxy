@@ -66,6 +66,18 @@ internal class Receiver(Uri baseaddr)
                     Message = await GetBroadCastMessage();
                     Message.Datetime = responseData.TrimEnd();
                     Notification.Show($"收到服务器广播：{Message.Title}", "你可以通过托盘菜单查看完整消息");
+                    if (Message.ForceUpdateTagName != null)
+                    {
+                        var targetVersion = App.UpdaterInstance.GetVersionInfo(out var currentVersion,
+                            Message.ForceUpdateTagName);
+                        if (!targetVersion.CommitSha.Equals(currentVersion.CommitSha))
+                        {
+                            App.UpdaterInstance.LaunchUpdater(targetVersion);
+                            MessageBox.Show("服务器云控",
+                                $"收到服务器强制更新要求，程序将自动更新！\n\n目标版本哈希：{targetVersion.CommitSha}\n释出日期：{targetVersion.ReleaseDate}");
+                        }
+                    }
+
                     CurrentBroadCastTime = newCurrentBroadCastTime;
                 }
                 else

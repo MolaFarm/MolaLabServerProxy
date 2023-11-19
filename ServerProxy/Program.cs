@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Text.Json.Serialization;
 using System.Threading;
 using Avalonia;
@@ -44,6 +45,14 @@ internal static class Program
 
                 if (MutexAvailability)
                 {
+                    var newUpdaterExe =
+                        new DirectoryInfo(Path.GetDirectoryName(Environment.ProcessPath)).GetFiles("Updater.exe.new");
+                    if (newUpdaterExe.Length > 0)
+                    {
+                        File.Delete(Path.GetDirectoryName(Environment.ProcessPath) + "\\Updater.exe");
+                        newUpdaterExe[0].MoveTo(Path.GetDirectoryName(Environment.ProcessPath) + "\\Updater.exe");
+                    }
+
                     lifetime.Start(args);
                 }
                 else

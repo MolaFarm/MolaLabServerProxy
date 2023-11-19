@@ -23,6 +23,7 @@ public class App : Application
     private static DnsProxy _proxy;
     private static Receiver _receiver;
     private static List<NetworkInterface> _adapters;
+    public static Updater UpdaterInstance;
     public static Status ServiceStatus = Status.Starting;
     public static bool IsOnExit;
 
@@ -62,8 +63,8 @@ public class App : Application
 
                 // Check for update
                 if (!config.CheckUpdate) return;
-                var updater = new Updater();
-                var updaterThread = new Thread(() => updater.CheckUpdate(config.BaseUpdateAddr));
+                UpdaterInstance = new Updater(config.BaseUpdateAddr);
+                var updaterThread = new Thread(UpdaterInstance.CheckUpdate);
                 updaterThread.Start();
             }
         }
@@ -84,7 +85,7 @@ public class App : Application
         ServiceStatus = status;
     }
 
-    private static void OnExit()
+    public static void OnExit()
     {
         IsOnExit = true;
         foreach (var adapter in _adapters) Adapter.CUnsetDns(adapter);
