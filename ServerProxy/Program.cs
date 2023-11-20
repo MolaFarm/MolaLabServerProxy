@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
 using System.Threading;
 using Avalonia;
@@ -71,10 +72,22 @@ internal static class Program
     // Avalonia configuration, don't remove; also used by visual designer.
     public static AppBuilder BuildAvaloniaApp()
     {
+        if (RuntimeInformation.OSArchitecture == Architecture.Arm64)
+            return AppBuilder.Configure<App>()
+                .UsePlatformDetect()
+                .WithInterFont()
+                .LogToTrace()
+                .UseReactiveUI()
+                .UseWin32()
+                .With(new Win32PlatformOptions
+                {
+                    RenderingMode = new[] { Win32RenderingMode.Software }
+                });
+
         return AppBuilder.Configure<App>()
-            .UsePlatformDetect()
-            .WithInterFont()
-            .LogToTrace()
-            .UseReactiveUI();
+                .UsePlatformDetect()
+                .WithInterFont()
+                .LogToTrace()
+                .UseReactiveUI();
     }
 }
