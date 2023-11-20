@@ -27,7 +27,6 @@ public class App : Application
     public static CancellationTokenSource UpdaterTokenSource;
     public static Updater UpdaterInstance;
     public static Status ServiceStatus = Status.Starting;
-    public static bool IsOnExit;
 
     public override void Initialize()
     {
@@ -90,7 +89,8 @@ public class App : Application
 
     public static void OnExit()
     {
-        IsOnExit = true;
+        ProxyTokenSource.Cancel();
+        UpdaterTokenSource.Cancel();
         foreach (var adapter in _adapters) Adapter.CUnsetDns(adapter);
         if (DnsProxy.HnsOriginalStatus.IsStarted) _proxy.ServiceRestore();
         Environment.Exit(0);

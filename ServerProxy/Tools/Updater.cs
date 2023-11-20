@@ -58,7 +58,7 @@ public class Updater(string baseAddress)
         // Wait for DNS Ready
         while (App.ServiceStatus != Status.Healthy || !App.BroadcastReceiver.IsReceivedOnce)
         {
-            if (App.IsOnExit) return;
+            if (App.UpdaterTokenSource.IsCancellationRequested) return;
             await Task.Delay(1000);
         }
 
@@ -88,7 +88,6 @@ public class Updater(string baseAddress)
         }
     }
 
-    // New method to get version information
     public VersionInfo GetVersionInfo(out VersionInfo currentVersion, string? tagName = null, string? commitSha = null)
     {
         using var client = CreateHttpClient();
