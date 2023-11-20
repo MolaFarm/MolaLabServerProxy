@@ -27,11 +27,14 @@ public class VersionInfo
     public string? DownloadAddress { get; set; }
 }
 
-public class Updater(string baseAddress)
+public class Updater
 {
     private const string AccessToken = "GITLAB_ACCESS_TOKEN_HERE";
     private const int ProjectID = 80;
+    private static string _baseAddress;
     private readonly Architecture _currentArchitecture = RuntimeInformation.ProcessArchitecture;
+
+    public Updater(string baseAddress) => _baseAddress = baseAddress;
 
     public async Task CheckUpdate()
     {
@@ -90,7 +93,10 @@ public class Updater(string baseAddress)
 
     public VersionInfo GetVersionInfo(out VersionInfo currentVersion, string? tagName = null, string? commitSha = null)
     {
-        using var client = CreateHttpClient();
+        var hostname = new Uri(_baseAddress).Host;
+        var serverIp = GetUpdateServerIp(hostname);
+        using var client = CreateHttpClient(_baseAddress.Replace(hostname, serverIp.ToString()));
+        client.DefaultRequestHeaders.Host = hostname;
         var url = $"api/v4/projects/{ProjectID}/releases";
         var response = Dispatcher.UIThread.Invoke(() => Awaiter.AwaitByPushFrame(client.GetAsync(url)));
         response.EnsureSuccessStatusCode();
@@ -136,14 +142,28 @@ public class Updater(string baseAddress)
 
     public static void LaunchUpdater(VersionInfo versionInfo, bool force = false)
     {
+        var serverIp = GetUpdateServerIp(new Uri(_baseAddress).Host, force);
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = $"{Path.GetDirectoryName(Environment.ProcessPath)}\\Updater.exe",
+            UseShellExecute = true,
+            Arguments =
+                $"{AccessToken} {ProjectID} {serverIp} {versionInfo.DownloadAddress} {Path.GetDirectoryName(Environment.ProcessPath)}",
+            CreateNoWindow = true,
+            WorkingDirectory = Path.GetDirectoryName(Environment.ProcessPath)
+        });
+    }
+
+    private static IPAddress GetUpdateServerIp(string hostname, bool force = false)
+    {
         DnsMessage? answer;
         try
         {
             using IDnsClient dnsClient = new DnsUdpClient(IPAddress.Loopback);
             answer = Dispatcher.UIThread.Invoke(() => Awaiter.AwaitByPushFrame(
-                dnsClient.Query(DnsQueryFactory.CreateQuery("git.labserver.internal"))));
+                dnsClient.Query(DnsQueryFactory.CreateQuery(hostname))));
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             if (!force) throw;
             var handler = new HttpClientHandler
@@ -152,24 +172,16 @@ public class Updater(string baseAddress)
                 ServerCertificateCustomValidationCallback = (httpRequestMessage, cert, cetChain, policyErrors) => true
             };
             using IDnsClient dnsClient = new CustomDnsHttpClient(new HttpClient(handler)
-                { BaseAddress = new Uri((Application.Current.DataContext as AppViewModel).AppConfig.ServerIp) });
+            { BaseAddress = new Uri((Application.Current.DataContext as AppViewModel).AppConfig.ServerIp) });
             answer = Dispatcher.UIThread.Invoke(() => Awaiter.AwaitByPushFrame(
-                dnsClient.Query(DnsQueryFactory.CreateQuery("git.labserver.internal"))));
+                dnsClient.Query(DnsQueryFactory.CreateQuery(hostname))));
         }
 
         if (answer.Answers.Count == 0) throw new Exception("无法找到服务器 IP 地址");
-        Process.Start(new ProcessStartInfo
-        {
-            FileName = $"{Path.GetDirectoryName(Environment.ProcessPath)}\\Updater.exe",
-            UseShellExecute = true,
-            Arguments =
-                $"{AccessToken} {ProjectID} {(answer.Answers[0].Resource as DnsIpAddressResource).IPAddress} {versionInfo.DownloadAddress} {Path.GetDirectoryName(Environment.ProcessPath)}",
-            CreateNoWindow = true,
-            WorkingDirectory = Path.GetDirectoryName(Environment.ProcessPath)
-        });
+        return (answer.Answers[0].Resource as DnsIpAddressResource).IPAddress;
     }
 
-    private HttpClient CreateHttpClient()
+    private HttpClient CreateHttpClient(string baseAddress)
     {
         var handler = new HttpClientHandler
         {
