@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -46,9 +46,11 @@ internal class DnsProxy
     private static IDnsFilter _dnsFilter;
     private static IDnsClient _dnsClient;
     private static IDnsClient _filterClient;
-    private static DnsUdpServerOptions _serverOptions;
+    private static DnsUdpServerOptions _udpServerOptions;
+    private static DnsTcpServerOptions _tcpServerOptions;
     private static IDnsRawClient _rawClient;
-    private static IDnsServer _server;
+    private static IDnsServer _udpDnsServer;
+    private static IDnsServer _tcpDnsServer;
 
     private readonly string _address;
     private readonly Config _config;
@@ -118,12 +120,16 @@ internal class DnsProxy
         _dnsFilter = new DnsDelegateFilter(x => true);
         _dnsClient = new CustomDnsHttpClient(_httpClientInstance) { IsInInternalNet = isInInternalNet };
         _filterClient = new DnsFilterClient(_dnsFilter, _dnsClient);
-        _serverOptions = new DnsUdpServerOptions { Endpoint = new IPEndPoint(IPAddress.Loopback, 53) };
+        _udpServerOptions = new DnsUdpServerOptions { Endpoint = new IPEndPoint(IPAddress.Loopback, 53) };
+        _tcpServerOptions = new DnsTcpServerOptions { Endpoint = new IPEndPoint(IPAddress.Loopback, 53) };
 
         _rawClient = new DnsRawClient(_filterClient);
-        _server = new DnsUdpServer(_rawClient, _serverOptions);
+        _udpDnsServer = new DnsUdpServer(_rawClient, _udpServerOptions);
+        _tcpDnsServer = new DnsTcpServer(_rawClient, _tcpServerOptions);
 
-        var serverListener = _server.Listen(App.ProxyTokenSource.Token);
+        var udpServerListener = _udpDnsServer.Listen(App.ProxyTokenSource.Token);
+        var tcpServerListener = _tcpDnsServer.Listen(App.ProxyTokenSource.Token);
+
         var checker = new Thread(HealthChecker);
         checker.Start();
 
@@ -141,7 +147,8 @@ internal class DnsProxy
 
         Notification.Show("代理服务", "代理服务已启动");
 
-        await serverListener;
+        await udpServerListener;
+        await tcpServerListener;
     }
 
     private static void TryUpdateServiceStatus(ServiceController controller, ServiceInfo serviceInfo)
@@ -186,7 +193,7 @@ internal class DnsProxy
         catch (Exception)
         {
             SharedAccessOriginalStatus.IsExist = false;
-            MessageBox.Show("警告", "检测到 UDP 53 端口被未知程序占用，代理服务可能无法正常工作", ButtonEnum.Ok, Icon.Warning);
+            MessageBox.Show("警告", "检测到 TCP/UDP 53 端口被未知程序占用，代理服务可能无法正常工作", ButtonEnum.Ok, Icon.Warning);
         }
     }
 
@@ -297,10 +304,14 @@ internal class DnsProxy
     private static bool PortInUse(int port)
     {
         var ipProperties = IPGlobalProperties.GetIPGlobalProperties();
-        var ipEndPoints = ipProperties.GetActiveUdpListeners();
+        var ipUdpEndPoints = ipProperties.GetActiveUdpListeners();
+        var ipTcpEndPoints = ipProperties.GetActiveTcpListeners();
 
-        return ipEndPoints.Any(endPoint =>
-            endPoint.Port == port &&
-            endPoint.Address.Equals(IPAddress.Loopback));
+        return ipUdpEndPoints.Any(endPoint =>
+                   endPoint.Port == port &&
+                   endPoint.Address.Equals(IPAddress.Loopback)) &&
+               ipTcpEndPoints.Any(endPoint =>
+                   endPoint.Port == port &&
+                   endPoint.Address.Equals(IPAddress.Loopback));
     }
 }
