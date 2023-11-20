@@ -65,9 +65,11 @@ public class App : Application
                 foreach (var adapter in _adapters) Adapter.CSetDns(adapter, "127.0.0.1", "::1");
 
                 // Check for update
-                if (!config.CheckUpdate) return;
-                UpdaterInstance = new Updater(config.BaseUpdateAddr);
-                _ = Task.Run(UpdaterInstance.CheckUpdate, UpdaterTokenSource.Token);
+                if (config.CheckUpdate)
+                {
+                    UpdaterInstance = new Updater(config.BaseUpdateAddr);
+                    _ = Task.Run(UpdaterInstance.CheckUpdate, UpdaterTokenSource.Token);
+                }
             }
         }
 
