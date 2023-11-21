@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
@@ -46,6 +47,11 @@ internal static class Program
 
                 if (MutexAvailability)
                 {
+                    var processes = Process.GetProcessesByName("ServerProxy");
+                    foreach (var process in processes)
+                        if (process.MainModule?.FileName ==
+                            Path.GetDirectoryName(Environment.ProcessPath) + "\\Updater.exe")
+                            process.WaitForExit();
                     var newUpdaterExe =
                         new DirectoryInfo(Path.GetDirectoryName(Environment.ProcessPath)).GetFiles("Updater.exe.new");
                     if (newUpdaterExe.Length > 0)
@@ -85,9 +91,9 @@ internal static class Program
                 });
 
         return AppBuilder.Configure<App>()
-                .UsePlatformDetect()
-                .WithInterFont()
-                .LogToTrace()
-                .UseReactiveUI();
+            .UsePlatformDetect()
+            .WithInterFont()
+            .LogToTrace()
+            .UseReactiveUI();
     }
 }
