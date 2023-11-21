@@ -28,7 +28,6 @@ public class App : Application
     public static Receiver BroadcastReceiver;
     public static ILoggerFactory AppLoggerFactory;
     public static CancellationTokenSource ProxyTokenSource = new();
-    public static CancellationTokenSource ForwarderTokenSource = new();
     public static CancellationTokenSource UpdaterTokenSource = new();
     public static Updater UpdaterInstance;
     public static Status ServiceStatus = Status.Starting;
@@ -70,7 +69,7 @@ public class App : Application
                 if (Adapter.IsIpv6Available())
                 {
                     _forwarder = new IPv6Forwarder(IPAddress.Loopback, 53, IPAddress.IPv6Loopback, 53);
-                    _ = Task.Run(_forwarder.StartAsync, ForwarderTokenSource.Token);
+                    _ = Task.Run(_forwarder.StartAsync, ProxyTokenSource.Token);
                 }
 
                 // Set DNS

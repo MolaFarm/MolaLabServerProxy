@@ -31,7 +31,7 @@ internal class IPv6Forwarder(IPAddress remoteIp, ushort remotePort, IPAddress lo
 
         _ = Task.Run(async () =>
         {
-            while (!App.ForwarderTokenSource.IsCancellationRequested)
+            while (!App.ProxyTokenSource.IsCancellationRequested)
             {
                 await Task.Delay(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
                 foreach (var connection in connections.ToArray())
@@ -43,7 +43,7 @@ internal class IPv6Forwarder(IPAddress remoteIp, ushort remotePort, IPAddress lo
             }
         });
 
-        while (!App.ForwarderTokenSource.IsCancellationRequested)
+        while (!App.ProxyTokenSource.IsCancellationRequested)
             try
             {
                 var message = await localServer.ReceiveAsync().ConfigureAwait(false);
@@ -59,7 +59,7 @@ internal class IPv6Forwarder(IPAddress remoteIp, ushort remotePort, IPAddress lo
             }
             catch (Exception ex)
             {
-                logger.LogTrace(ex, "An exception occurred on receiving a client datagram");
+                logger.LogWarning(ex, "An exception occurred on receiving a client datagram");
             }
     }
 }
@@ -127,7 +127,7 @@ internal class UdpConnection
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogTrace(ex, "An exception occurred on receiving a client datagram");
+                        _logger.LogWarning(ex, "An exception occurred on receiving a client datagram");
                     }
             }
         });
@@ -144,7 +144,7 @@ internal class UdpConnection
         }
         catch (Exception ex)
         {
-            _logger.LogTrace(ex, "An exception occurred on receiving a client datagram");
+            _logger.LogWarning(ex, "An exception occurred on receiving a client datagram");
         }
     }
 }
