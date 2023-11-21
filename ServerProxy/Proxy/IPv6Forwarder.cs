@@ -8,14 +8,14 @@ using Microsoft.Extensions.Logging;
 
 namespace ServerProxy.Proxy;
 
-internal class IPv6Forwarder
+internal class IPv6Forwarder(IPAddress remoteIp, ushort remotePort, IPAddress localIp, ushort localPort)
 {
     /// <summary>
     ///     Milliseconds
     /// </summary>
     private int ConnectionTimeout { get; } = 4 * 60 * 1000;
 
-    public async Task Start(IPAddress remoteIp, ushort remotePort, IPAddress localIp, ushort localPort)
+    public async Task StartAsync()
     {
         var logger = App.AppLoggerFactory.CreateLogger<IPv6Forwarder>();
 
@@ -31,7 +31,7 @@ internal class IPv6Forwarder
 
         _ = Task.Run(async () =>
         {
-            while (true)
+            while (!App.ForwarderTokenSource.IsCancellationRequested)
             {
                 await Task.Delay(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
                 foreach (var connection in connections.ToArray())
@@ -43,7 +43,7 @@ internal class IPv6Forwarder
             }
         });
 
-        while (true)
+        while (!App.ForwarderTokenSource.IsCancellationRequested)
             try
             {
                 var message = await localServer.ReceiveAsync().ConfigureAwait(false);
@@ -59,7 +59,7 @@ internal class IPv6Forwarder
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "An exception occurred on receiving a client datagram");
+                logger.LogTrace(ex, "An exception occurred on receiving a client datagram");
             }
     }
 }
@@ -127,7 +127,7 @@ internal class UdpConnection
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "An exception occurred on receiving a client datagram");
+                        _logger.LogTrace(ex, "An exception occurred on receiving a client datagram");
                     }
             }
         });
@@ -144,7 +144,7 @@ internal class UdpConnection
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "An exception occurred on receiving a client datagram");
+            _logger.LogTrace(ex, "An exception occurred on receiving a client datagram");
         }
     }
 }

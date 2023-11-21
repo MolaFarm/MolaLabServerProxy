@@ -47,7 +47,7 @@ internal class Adapter
         }
     }
 
-    public static bool ShouldProxyV6()
+    public static bool IsIpv6Available()
     {
         foreach (var i in ListAllInterface())
             if (IsIPv6Adapter(i))

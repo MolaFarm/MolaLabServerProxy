@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -148,18 +148,6 @@ internal class DnsProxy
 
         var checker = new Thread(HealthChecker);
         checker.Start();
-
-        var v6Proxy = Adapter.ShouldProxyV6();
-
-        if (v6Proxy)
-        {
-            IPv6Forwarder forwardproxy = new();
-            var forwarder = forwardproxy.Start(IPAddress.Loopback, 53, IPAddress.IPv6Loopback, 53);
-        }
-        else
-        {
-            Console.WriteLine("Ipv6 disable, DNS proxy will not start");
-        }
 
         Notification.Show("代理服务", "代理服务已启动");
 

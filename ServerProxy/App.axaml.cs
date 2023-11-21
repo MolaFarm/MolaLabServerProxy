@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
 using System.Net.NetworkInformation;
 using System.Text.Json;
 using System.Threading;
@@ -23,9 +24,11 @@ public class App : Application
 {
     private static DnsProxy _proxy;
     private static List<NetworkInterface> _adapters;
+    private static IPv6Forwarder _forwarder;
     public static Receiver BroadcastReceiver;
     public static ILoggerFactory AppLoggerFactory;
     public static CancellationTokenSource ProxyTokenSource = new();
+    public static CancellationTokenSource ForwarderTokenSource = new();
     public static CancellationTokenSource UpdaterTokenSource = new();
     public static Updater UpdaterInstance;
     public static Status ServiceStatus = Status.Starting;
@@ -62,6 +65,13 @@ public class App : Application
                 SetStatus(Status.Starting);
                 _proxy = new DnsProxy($"https://{config.ServerIp}/", config);
                 _ = Task.Run(_proxy.StartAsync, ProxyTokenSource.Token);
+
+                // Start Forwarder
+                if (Adapter.IsIpv6Available())
+                {
+                    _forwarder = new IPv6Forwarder(IPAddress.Loopback, 53, IPAddress.IPv6Loopback, 53);
+                    _ = Task.Run(_forwarder.StartAsync, ForwarderTokenSource.Token);
+                }
 
                 // Set DNS
                 _adapters = Adapter.ListAllInterface();
