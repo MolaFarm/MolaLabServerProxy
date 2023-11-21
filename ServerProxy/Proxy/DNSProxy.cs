@@ -22,13 +22,6 @@ using ServerProxy.Tools;
 
 namespace ServerProxy.Proxy;
 
-public struct ServiceInfo
-{
-    public bool IsStarted;
-    public bool IsExist;
-    public ServiceStartMode StartType;
-}
-
 internal class DnsProxy
 {
     public static ServiceInfo HnsOriginalStatus = new()
