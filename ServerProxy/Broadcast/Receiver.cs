@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Threading;
+using Microsoft.Extensions.Logging;
 using ServerProxy.Tools;
 using ServerProxy.ViewModels;
 
@@ -35,6 +36,7 @@ public class Receiver(Uri baseaddr)
 
     public async Task ReceiveBroadcastAsync()
     {
+        var logger = App.AppLoggerFactory.CreateLogger<Receiver>();
         using var client = CreateHttpClient();
         const string uri = "broadcast/current";
         var lastReadDate = DateTime.MinValue;
@@ -66,6 +68,7 @@ public class Receiver(Uri baseaddr)
                 {
                     Message = await GetBroadCastMessage();
                     Message.Datetime = responseData.TrimEnd();
+                    logger.LogInformation($"Received Broadcast: {Message.Title}");
                     Notification.Show($"收到服务器广播：{Message.Title}", "你可以通过托盘菜单查看完整消息");
                     if (Message.ForceUpdateTagName != null)
                     {
@@ -85,6 +88,7 @@ public class Receiver(Uri baseaddr)
                             }
 
                             if (!App.ProxyTokenSource.IsCancellationRequested) await App.ProxyTokenSource.CancelAsync();
+                            logger.LogWarning($"Force Update Required! Target Version: {targetVersion.CommitSha}");
                             MessageBox.Show("服务器云控",
                                 $"收到服务器强制更新要求，程序将自动更新！\n\n目标版本哈希：{targetVersion.CommitSha}\n释出日期：{targetVersion.ReleaseDate}");
                             Dispatcher.UIThread.Invoke(App.OnExit);

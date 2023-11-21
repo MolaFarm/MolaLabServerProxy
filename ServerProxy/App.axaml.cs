@@ -10,6 +10,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Microsoft.Extensions.Logging;
 using ServerProxy.Broadcast;
 using ServerProxy.Controls;
 using ServerProxy.Proxy;
@@ -23,8 +24,9 @@ public class App : Application
     private static DnsProxy _proxy;
     private static List<NetworkInterface> _adapters;
     public static Receiver BroadcastReceiver;
-    public static CancellationTokenSource ProxyTokenSource;
-    public static CancellationTokenSource UpdaterTokenSource;
+    public static ILoggerFactory AppLoggerFactory;
+    public static CancellationTokenSource ProxyTokenSource = new();
+    public static CancellationTokenSource UpdaterTokenSource = new();
     public static Updater UpdaterInstance;
     public static Status ServiceStatus = Status.Starting;
 
@@ -45,8 +47,9 @@ public class App : Application
             if (Program.MutexAvailability)
             {
                 var config = (DataContext as AppViewModel).AppConfig;
-                UpdaterTokenSource = new CancellationTokenSource();
-                ProxyTokenSource = new CancellationTokenSource();
+
+                // Create Logger Factory
+                AppLoggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
 
                 // Install Certificate
                 CertificateUtil.Install();

@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace ServerProxy.Proxy;
 
@@ -16,6 +17,8 @@ internal class IPv6Forwarder
 
     public async Task Start(IPAddress remoteIp, ushort remotePort, IPAddress localIp, ushort localPort)
     {
+        var logger = App.AppLoggerFactory.CreateLogger<IPv6Forwarder>();
+
         var connections = new ConcurrentDictionary<IPEndPoint, UdpConnection>();
 
         var remoteServerEndPoint = new IPEndPoint(remoteIp, remotePort);
@@ -24,7 +27,7 @@ internal class IPv6Forwarder
         localServer.Client.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
         localServer.Client.Bind(new IPEndPoint(localIp, localPort));
 
-        Console.WriteLine($"UDP proxy started [{localIp}]:{localPort} -> [{remoteIp}]:{remotePort}");
+        logger.LogInformation($"UDP proxy started [{localIp}]:{localPort} -> [{remoteIp}]:{remotePort}");
 
         _ = Task.Run(async () =>
         {
@@ -56,14 +59,14 @@ internal class IPv6Forwarder
             }
             catch (Exception ex)
             {
-                //ExceptionHandler.Handle(ex);
-                Console.WriteLine($"an exception occurred on receiving a client datagram: {ex}");
+                logger.LogWarning(ex, "An exception occurred on receiving a client datagram");
             }
     }
 }
 
 internal class UdpConnection
 {
+    private static ILogger _logger;
     private readonly UdpClient _forwardClient;
     private readonly TaskCompletionSource<bool> _forwardConnectionBindCompleted = new();
     private readonly UdpClient _localServer;
@@ -83,6 +86,8 @@ internal class UdpConnection
         _isRunning = true;
         _remoteEndpoint = remoteEndpoint;
         _sourceEndpoint = sourceEndpoint;
+
+        _logger = App.AppLoggerFactory.CreateLogger<UdpConnection>();
 
         _forwardClient = new UdpClient(AddressFamily.InterNetworkV6);
         _forwardClient.Client.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
@@ -108,7 +113,7 @@ internal class UdpConnection
                 _forwardClient.Client.Bind(new IPEndPoint(IPAddress.Any, 0));
                 _forwardLocalEndpoint = _forwardClient.Client.LocalEndPoint;
                 _forwardConnectionBindCompleted.SetResult(true);
-                Console.WriteLine(
+                _logger.LogInformation(
                     $"Established UDP {_sourceEndpoint} => {_serverLocalEndpoint} => {_forwardLocalEndpoint} => {_remoteEndpoint}");
 
                 while (_isRunning)
@@ -122,8 +127,7 @@ internal class UdpConnection
                     }
                     catch (Exception ex)
                     {
-                        //if (_isRunning) ExceptionHandler.Handle(ex);
-                        Console.WriteLine($"an exception occurred on receiving a client datagram: {ex}");
+                        _logger.LogWarning(ex, "An exception occurred on receiving a client datagram");
                     }
             }
         });
@@ -133,15 +137,14 @@ internal class UdpConnection
     {
         try
         {
-            Console.WriteLine(
+            _logger.LogInformation(
                 $"Closed UDP {_sourceEndpoint} => {_serverLocalEndpoint} => {_forwardLocalEndpoint} => {_remoteEndpoint}. {_totalBytesForwarded} bytes forwarded, {_totalBytesResponded} bytes responded.");
             _isRunning = false;
             _forwardClient.Close();
         }
         catch (Exception ex)
         {
-            //ExceptionHandler.Handle(ex);
-            Console.WriteLine($"an exception occurred on receiving a client datagram: {ex}");
+            _logger.LogWarning(ex, "An exception occurred on receiving a client datagram");
         }
     }
 }

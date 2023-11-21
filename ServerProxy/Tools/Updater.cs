@@ -14,6 +14,7 @@ using Ae.Dns.Protocol;
 using Ae.Dns.Protocol.Records;
 using Avalonia;
 using Avalonia.Threading;
+using Microsoft.Extensions.Logging;
 using MsBox.Avalonia.Enums;
 using ServerProxy.Proxy;
 using ServerProxy.ViewModels;
@@ -34,7 +35,10 @@ public class Updater
     private static string _baseAddress;
     private readonly Architecture _currentArchitecture = RuntimeInformation.ProcessArchitecture;
 
-    public Updater(string baseAddress) => _baseAddress = baseAddress;
+    public Updater(string baseAddress)
+    {
+        _baseAddress = baseAddress;
+    }
 
     public async Task CheckUpdate()
     {
@@ -65,9 +69,21 @@ public class Updater
             await Task.Delay(1000);
         }
 
+        var logger = App.AppLoggerFactory.CreateLogger<Updater>();
+
         var latestVersion = GetVersionInfo(out var currentVersion);
 
         if (DateTime.Compare(latestVersion.ReleaseDate, currentVersion.ReleaseDate) <= 0) return;
+
+        logger.LogWarning($"""
+                           New version detected:
+                           * Current Version:
+                             Commit: {currentVersion.CommitSha}
+                             Release Date: {(currentVersion.ReleaseDate != DateTime.MinValue ? currentVersion.ReleaseDate : "N/A")}
+                           * Latest Version:
+                             Commit: {latestVersion.CommitSha}
+                             Release Date: {latestVersion.ReleaseDate}
+                           """);
 
         var newVerMessage = currentVersion.ReleaseDate != DateTime.MinValue
             ? "检测到新版本，是否要进行更新？"
@@ -172,7 +188,7 @@ public class Updater
                 ServerCertificateCustomValidationCallback = (httpRequestMessage, cert, cetChain, policyErrors) => true
             };
             using IDnsClient dnsClient = new CustomDnsHttpClient(new HttpClient(handler)
-            { BaseAddress = new Uri((Application.Current.DataContext as AppViewModel).AppConfig.ServerIp) });
+                { BaseAddress = new Uri((Application.Current.DataContext as AppViewModel).AppConfig.ServerIp) });
             answer = Dispatcher.UIThread.Invoke(() => Awaiter.AwaitByPushFrame(
                 dnsClient.Query(DnsQueryFactory.CreateQuery(hostname))));
         }

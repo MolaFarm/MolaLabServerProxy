@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -15,6 +15,8 @@ using Ae.Dns.Protocol.Records;
 using Ae.Dns.Server;
 using Avalonia;
 using Avalonia.Threading;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MsBox.Avalonia.Enums;
 using ServerProxy.Tools;
 
@@ -43,13 +45,14 @@ internal class DnsProxy
         StartType = ServiceStartMode.Manual
     };
 
+    private static ILogger<DnsProxy> _logger;
     private static HttpClient _httpClientInstance;
     private static IDnsFilter _dnsFilter;
     private static IDnsClient _dnsClient;
     private static IDnsClient _cacheClient;
     private static IDnsClient _filterClient;
-    private static DnsUdpServerOptions _udpServerOptions;
-    private static DnsTcpServerOptions _tcpServerOptions;
+    private static IOptions<DnsUdpServerOptions> _udpServerOptions;
+    private static IOptions<DnsTcpServerOptions> _tcpServerOptions;
     private static IDnsRawClient _rawClient;
     private static IDnsServer _udpDnsServer;
     private static IDnsServer _tcpDnsServer;
@@ -64,6 +67,7 @@ internal class DnsProxy
     {
         _address = address;
         _config = config;
+        _logger = App.AppLoggerFactory.CreateLogger<DnsProxy>();
         _sharedAccessController = new ServiceController("SharedAccess");
         _hnsController = new ServiceController("hns");
 
@@ -85,6 +89,7 @@ internal class DnsProxy
 
         if (HnsOriginalStatus.IsExist && _hnsController.StartType == ServiceStartMode.Disabled)
         {
+            _logger.LogWarning("Possible Dirty Close Detected");
             var dialogResult = MessageBox.Show("注意",
                 "检测到\"主机网络服务\"状态为\"禁用\"，这可能是因为上次没有正确关闭本程序引起的，如果属实，请点击\"是\"，程序将在退出时还原设置",
                 ButtonEnum.YesNo, Icon.Question);
@@ -105,7 +110,9 @@ internal class DnsProxy
             }
             catch (Exception ex)
             {
-                ExceptionHandler.Handle(ex);
+                _logger.LogWarning("Port 53(TCP/UDP) is occupied");
+                SharedAccessOriginalStatus.IsExist = false;
+                MessageBox.Show("警告", "检测到 TCP/UDP 53 端口被未知程序占用，代理服务可能无法正常工作", ButtonEnum.Ok, Icon.Warning);
             }
 
         var handler = new HttpClientHandler
@@ -123,12 +130,18 @@ internal class DnsProxy
         _dnsClient = new CustomDnsHttpClient(_httpClientInstance) { IsInInternalNet = isInInternalNet };
         _cacheClient = new DnsCachingClient(_dnsClient, new MemoryCache("dns"));
         _filterClient = new DnsFilterClient(_dnsFilter, _cacheClient);
-        _udpServerOptions = new DnsUdpServerOptions { Endpoint = new IPEndPoint(IPAddress.Loopback, 53) };
-        _tcpServerOptions = new DnsTcpServerOptions { Endpoint = new IPEndPoint(IPAddress.Loopback, 53) };
+        _udpServerOptions =
+            Options.Create(new DnsUdpServerOptions { Endpoint = new IPEndPoint(IPAddress.Loopback, 53) });
+        _tcpServerOptions =
+            Options.Create(new DnsTcpServerOptions { Endpoint = new IPEndPoint(IPAddress.Loopback, 53) });
+
 
         _rawClient = new DnsRawClient(_filterClient);
-        _udpDnsServer = new DnsUdpServer(_rawClient, _udpServerOptions);
-        _tcpDnsServer = new DnsTcpServer(_rawClient, _tcpServerOptions);
+
+        var udpDnsServerLogger = App.AppLoggerFactory.CreateLogger<DnsUdpServer>();
+        var tcpDnsServerLogger = App.AppLoggerFactory.CreateLogger<DnsTcpServer>();
+        _udpDnsServer = new DnsUdpServer(udpDnsServerLogger, _rawClient, _udpServerOptions);
+        _tcpDnsServer = new DnsTcpServer(tcpDnsServerLogger, _rawClient, _tcpServerOptions);
 
         var udpServerListener = _udpDnsServer.Listen(App.ProxyTokenSource.Token);
         var tcpServerListener = _tcpDnsServer.Listen(App.ProxyTokenSource.Token);
@@ -181,23 +194,14 @@ internal class DnsProxy
         _hnsController.WaitForStatus(ServiceControllerStatus.Stopped);
         _sharedAccessController.Stop();
         _sharedAccessController.WaitForStatus(ServiceControllerStatus.Stopped);
-        Task.Delay(1000).Wait();
     }
 
     private void HandleSharedAccessService()
     {
-        try
-        {
-            _ = _sharedAccessController.DisplayName;
-            SharedAccessOriginalStatus.IsStarted = true;
-            _sharedAccessController.Stop();
-            _sharedAccessController.WaitForStatus(ServiceControllerStatus.Stopped);
-        }
-        catch (Exception)
-        {
-            SharedAccessOriginalStatus.IsExist = false;
-            MessageBox.Show("警告", "检测到 TCP/UDP 53 端口被未知程序占用，代理服务可能无法正常工作", ButtonEnum.Ok, Icon.Warning);
-        }
+        _ = _sharedAccessController.DisplayName;
+        SharedAccessOriginalStatus.IsStarted = true;
+        _sharedAccessController.Stop();
+        _sharedAccessController.WaitForStatus(ServiceControllerStatus.Stopped);
     }
 
     private async Task<bool> RouteHelper()
@@ -271,18 +275,18 @@ internal class DnsProxy
             {
                 var answer = Dispatcher.UIThread.Invoke(() => Awaiter.AwaitByPushFrame(
                     dnsClient.Query(DnsQueryFactory.CreateQuery("git.labserver.internal"))));
-                Console.WriteLine(answer);
                 currentStatus = Status.Healthy;
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                _logger.LogTrace(ex, "UnHealthy connection detected!");
                 currentStatus = Status.UnHealthy;
             }
             finally
             {
                 if (lastStatus != currentStatus)
                 {
+                    _logger.LogInformation($"Proxy status: {lastStatus} => {currentStatus}");
                     lastStatus = currentStatus;
                     Dispatcher.UIThread.Invoke(() => (Application.Current as App)?.SetStatus(currentStatus));
 
@@ -290,11 +294,9 @@ internal class DnsProxy
                     {
                         case Status.Healthy:
                             Notification.Show("提示", "代理服务状态: 健康");
-                            Console.WriteLine("Healthy!");
                             break;
                         case Status.UnHealthy:
                             Notification.Show("警告", "代理服务状态: 连接阻塞");
-                            Console.WriteLine("UnHealthy!");
                             break;
                     }
                 }
