@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Text;
 
@@ -6,7 +7,9 @@ namespace Ae.Dns.Protocol
 {
     internal static class DnsByteExtensions
     {
-        public static short ReadInt16(byte a, byte b)
+	    private static readonly MemoryPool<byte> BufferPool = MemoryPool<byte>.Shared;
+
+		public static short ReadInt16(byte a, byte b)
         {
             return (short)(a << 0 | b << 8);
         }
@@ -146,12 +149,12 @@ namespace Ae.Dns.Protocol
 #if NETSTANDARD2_0 || NETSTANDARD2_1
         public static ArraySegment<byte> AllocatePinnedNetworkBuffer() => new ArraySegment<byte>(new byte[NetworkBufferSize]);
 #else
-        // Allocate a buffer which will be used for the incoming query, and re-used to send the answer.
-        // Also make it pinned, see https://enclave.io/high-performance-udp-sockets-net6/
-        public static Memory<byte> AllocatePinnedNetworkBuffer() => GC.AllocateArray<byte>(NetworkBufferSize, true);
+		// Allocate a buffer which will be used for the incoming query, and re-used to send the answer.
+		// Also make it pinned, see https://enclave.io/high-performance-udp-sockets-net6/
+		public static Memory<byte> AllocatePinnedNetworkBuffer() => BufferPool.Rent(NetworkBufferSize).Memory;
 #endif
 
-        public static TReader FromBytes<TReader>(ReadOnlyMemory<byte> bytes) where TReader : IDnsByteArrayReader, new()
+		public static TReader FromBytes<TReader>(ReadOnlyMemory<byte> bytes) where TReader : IDnsByteArrayReader, new()
         {
             var offset = 0;
 
