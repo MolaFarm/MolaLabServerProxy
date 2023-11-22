@@ -10,35 +10,35 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Folder Include="Models\" />
-        <AvaloniaResource Include="Assets\**" />
-        <Folder Include="Views\" />
+        <Folder Include="Models\"/>
+        <AvaloniaResource Include="Assets\**"/>
+        <Folder Include="Views\"/>
     </ItemGroup>
 
 
     <ItemGroup>
-        <PackageReference Include="Ae.Dns.Server" Version="2.1.0" />
-        <PackageReference Include="Avalonia" Version="11.0.5" />
-        <PackageReference Include="Avalonia.Desktop" Version="11.0.5" />
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.5" />
-        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.0.5" />
+        <PackageReference Include="Ae.Dns.Server" Version="2.1.0"/>
+        <PackageReference Include="Avalonia" Version="11.0.5"/>
+        <PackageReference Include="Avalonia.Desktop" Version="11.0.5"/>
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.5"/>
+        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.0.5"/>
         <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-        <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.5" />
-        <PackageReference Include="Avalonia.ReactiveUI" Version="11.0.5" />
+        <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.5"/>
+        <PackageReference Include="Avalonia.ReactiveUI" Version="11.0.5"/>
         <PackageReference Include="GitVersion.MsBuild" Version="5.12.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="MessageBox.Avalonia" Version="3.1.5.1" />
-        <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
-        <PackageReference Include="System.Management" Version="8.0.0" />
-        <PackageReference Include="System.ServiceProcess.ServiceController" Version="8.0.0" />
+        <PackageReference Include="MessageBox.Avalonia" Version="3.1.5.1"/>
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0"/>
+        <PackageReference Include="System.Management" Version="8.0.0"/>
+        <PackageReference Include="System.ServiceProcess.ServiceController" Version="8.0.0"/>
     </ItemGroup>
 
 
     <ItemGroup>
-        <ProjectReference Include="..\Ae.Dns.Client\Ae.Dns.Client.csproj" />
+        <ProjectReference Include="..\Ae.Dns.Client\Ae.Dns.Client.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -54,6 +54,6 @@
     </ItemGroup>
 
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-        <Exec Command="xcopy &quot;$(ProjectDir)*Updater.*&quot; &quot;$(TargetDir)&quot; /Y" />
+        <Exec Command="xcopy &quot;$(ProjectDir)*Updater.*&quot; &quot;$(TargetDir)&quot; /Y"/>
     </Target>
 </Project>

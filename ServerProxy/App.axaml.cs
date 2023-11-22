@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Net;
 using System.Net.NetworkInformation;
 using System.Text.Json;
 using System.Threading;
@@ -24,7 +23,7 @@ public class App : Application
 {
     private static DnsProxy _proxy;
     private static List<NetworkInterface> _adapters;
-    private static IPv6Forwarder _forwarder;
+    private static UdpForwarder _forwarder;
     public static Receiver BroadcastReceiver;
     public static ILoggerFactory AppLoggerFactory;
     public static CancellationTokenSource ProxyTokenSource = new();
@@ -68,7 +67,7 @@ public class App : Application
                 // Start Forwarder
                 if (Adapter.IsIpv6Available())
                 {
-                    _forwarder = new IPv6Forwarder(IPAddress.Loopback, 53, IPAddress.IPv6Loopback, 53);
+                    _forwarder = new UdpForwarder();
                     _ = Task.Run(_forwarder.StartAsync, ProxyTokenSource.Token);
                 }
 
