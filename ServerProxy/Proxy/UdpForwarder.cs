@@ -14,7 +14,7 @@ internal class UdpForwarder
 
     public async Task StartAsync()
     {
-        while (!App.ServiceStatus.Equals(Status.Healthy)) await Task.Delay(1000);
+        App.IsServiceHealthy.Wait();
 
         while (!App.ProxyTokenSource.IsCancellationRequested)
             try

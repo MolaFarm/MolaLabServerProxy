@@ -30,6 +30,7 @@ public class App : Application
     public static CancellationTokenSource UpdaterTokenSource = new();
     public static Updater UpdaterInstance;
     public static Status ServiceStatus = Status.Starting;
+    public static ManualResetEventSlim IsServiceHealthy = new(false);
 
     public override void Initialize()
     {
@@ -98,6 +99,7 @@ public class App : Application
         };
 
         ServiceStatus = status;
+        if (status == Status.Healthy) IsServiceHealthy.Set();
     }
 
     public static void OnExit()

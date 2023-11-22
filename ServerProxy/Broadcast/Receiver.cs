@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.Net.Http;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Threading;
@@ -14,8 +15,8 @@ namespace ServerProxy.Broadcast;
 public class Receiver(Uri baseaddr)
 {
     public DateTime CurrentBroadCastTime = DateTime.MinValue;
-    public bool IsReceivedOnce;
-    public BroadCastMessage? Message;
+    public ManualResetEventSlim IsReceiveOnece = new(false);
+	public BroadCastMessage? Message;
 
     private HttpClient CreateHttpClient()
     {
@@ -109,8 +110,8 @@ public class Receiver(Uri baseaddr)
                 Message.Datetime = responseData.TrimEnd();
             }
 
-            IsReceivedOnce = true;
-            await Task.Delay(10000);
+			IsReceiveOnece.Set();
+			await Task.Delay(10000);
         }
     }
 

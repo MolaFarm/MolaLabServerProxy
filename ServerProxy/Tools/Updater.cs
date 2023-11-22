@@ -16,7 +16,6 @@ using Avalonia;
 using Avalonia.Threading;
 using Microsoft.Extensions.Logging;
 using MsBox.Avalonia.Enums;
-using ServerProxy.Proxy;
 using ServerProxy.ViewModels;
 
 namespace ServerProxy.Tools;
@@ -56,11 +55,9 @@ public class Updater
     private async Task Check()
     {
         // Wait for DNS Ready
-        while (App.ServiceStatus != Status.Healthy || !App.BroadcastReceiver.IsReceivedOnce)
-        {
-            if (App.UpdaterTokenSource.IsCancellationRequested) return;
-            await Task.Delay(1000);
-        }
+        App.IsServiceHealthy.Wait();
+        App.BroadcastReceiver.IsReceiveOnece.Wait();
+        if (App.UpdaterTokenSource.IsCancellationRequested) return;
 
         var logger = App.AppLoggerFactory.CreateLogger<Updater>();
 
