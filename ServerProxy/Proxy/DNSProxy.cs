@@ -1,9 +1,8 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.NetworkInformation;
-using System.Runtime.Caching;
 using System.ServiceProcess;
 using System.Threading;
 using System.Threading.Tasks;
@@ -42,7 +41,6 @@ internal class DnsProxy
     private static HttpClient _httpClientInstance;
     private static IDnsFilter _dnsFilter;
     private static IDnsClient _dnsClient;
-    private static IDnsClient _cacheClient;
     private static IDnsClient _filterClient;
     private static IOptions<DnsUdpServerOptions> _udpServerOptions;
     private static IOptions<DnsTcpServerOptions> _tcpServerOptions;
@@ -121,8 +119,7 @@ internal class DnsProxy
         _httpClientInstance = new HttpClient(handler) { BaseAddress = new Uri(_address) };
         _dnsFilter = new DnsDelegateFilter(x => true);
         _dnsClient = new CustomDnsHttpClient(_httpClientInstance) { IsInInternalNet = isInInternalNet };
-        _cacheClient = new DnsCachingClient(_dnsClient, new MemoryCache("dns"));
-        _filterClient = new DnsFilterClient(_dnsFilter, _cacheClient);
+        _filterClient = new DnsFilterClient(_dnsFilter, _dnsClient);
         _udpServerOptions =
             Options.Create(new DnsUdpServerOptions { Endpoint = new IPEndPoint(IPAddress.Loopback, 53) });
         _tcpServerOptions =
