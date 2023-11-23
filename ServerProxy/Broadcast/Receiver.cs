@@ -16,7 +16,7 @@ public class Receiver(Uri baseaddr)
 {
     public DateTime CurrentBroadCastTime = DateTime.MinValue;
     public ManualResetEventSlim IsReceiveOnece = new(false);
-	public BroadCastMessage? Message;
+    public BroadCastMessage? Message;
 
     private HttpClient CreateHttpClient()
     {
@@ -110,8 +110,8 @@ public class Receiver(Uri baseaddr)
                 Message.Datetime = responseData.TrimEnd();
             }
 
-			IsReceiveOnece.Set();
-			await Task.Delay(10000);
+            IsReceiveOnece.Set();
+            await Task.Delay(10000);
         }
     }
 

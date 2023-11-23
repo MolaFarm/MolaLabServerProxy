@@ -23,7 +23,8 @@ public class App : Application
 {
     private static DnsProxy _proxy;
     private static List<NetworkInterface> _adapters;
-    private static UdpForwarder _forwarder;
+    private static UdpForwarder _udpForwarder;
+    private static TcpForwarder _tcpForwarder;
     public static Receiver BroadcastReceiver;
     public static ILoggerFactory AppLoggerFactory;
     public static CancellationTokenSource ProxyTokenSource = new();
@@ -68,8 +69,10 @@ public class App : Application
                 // Start Forwarder
                 if (Adapter.IsIpv6Available())
                 {
-                    _forwarder = new UdpForwarder();
-                    _ = Task.Run(_forwarder.StartAsync, ProxyTokenSource.Token);
+                    _udpForwarder = new UdpForwarder();
+                    _tcpForwarder = new TcpForwarder();
+                    _ = Task.Run(_udpForwarder.StartAsync, ProxyTokenSource.Token);
+                    _ = Task.Run(_tcpForwarder.StartAsync, ProxyTokenSource.Token);
                 }
 
                 // Set DNS

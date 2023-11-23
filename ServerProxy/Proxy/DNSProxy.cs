@@ -4,7 +4,6 @@ using System.Net;
 using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.ServiceProcess;
-using System.Threading;
 using System.Threading.Tasks;
 using Ae.Dns.Client;
 using Ae.Dns.Client.Filters;
