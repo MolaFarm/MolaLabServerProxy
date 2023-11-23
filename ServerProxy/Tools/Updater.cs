@@ -104,9 +104,9 @@ public class Updater
         using var client = CreateHttpClient(_baseAddress.Replace(hostname, serverIp.ToString()));
         client.DefaultRequestHeaders.Host = hostname;
         var url = $"api/v4/projects/{ProjectID}/releases";
-        var response = Dispatcher.UIThread.Invoke(() => Awaiter.AwaitByPushFrame(client.GetAsync(url)));
+        var response = Awaiter.AwaitByPushFrame(client.GetAsync(url));
         response.EnsureSuccessStatusCode();
-        var resp = Dispatcher.UIThread.Invoke(() => Awaiter.AwaitByPushFrame(response.Content.ReadAsStringAsync()));
+        var resp = Awaiter.AwaitByPushFrame(response.Content.ReadAsStringAsync());
         using var doc = JsonDocument.Parse(resp);
         var info = FileVersionInfo.GetVersionInfo(Environment.ProcessPath);
         VersionInfo? targetVersion = null;
@@ -166,8 +166,7 @@ public class Updater
         try
         {
             using IDnsClient dnsClient = new DnsUdpClient(IPAddress.Loopback);
-            answer = Dispatcher.UIThread.Invoke(() => Awaiter.AwaitByPushFrame(
-                dnsClient.Query(DnsQueryFactory.CreateQuery(hostname))));
+            answer = Awaiter.AwaitByPushFrame(dnsClient.Query(DnsQueryFactory.CreateQuery(hostname)));
         }
         catch (Exception)
         {
@@ -179,8 +178,7 @@ public class Updater
             };
             using IDnsClient dnsClient = new CustomDnsHttpClient(new HttpClient(handler)
                 { BaseAddress = new Uri((Application.Current.DataContext as AppViewModel).AppConfig.ServerIp) });
-            answer = Dispatcher.UIThread.Invoke(() => Awaiter.AwaitByPushFrame(
-                dnsClient.Query(DnsQueryFactory.CreateQuery(hostname))));
+            answer = Awaiter.AwaitByPushFrame(dnsClient.Query(DnsQueryFactory.CreateQuery(hostname)));
         }
 
         if (answer.Answers.Count == 0) throw new Exception("无法找到服务器 IP 地址");

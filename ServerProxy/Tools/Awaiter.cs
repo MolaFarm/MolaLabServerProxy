@@ -12,9 +12,12 @@ internal class Awaiter
         if (task == null) throw new ArgumentNullException(nameof(task));
         Contract.EndContractBlock();
 
-        var frame = new DispatcherFrame();
-        task.ContinueWith(t => { frame.Continue = false; });
-        Dispatcher.UIThread.PushFrame(frame);
+        Dispatcher.UIThread.Invoke(() => {
+            var frame = new DispatcherFrame();
+            task.ContinueWith(t => { frame.Continue = false; });
+            Dispatcher.UIThread.PushFrame(frame);
+        });
+
         return task.Result;
     }
 }
