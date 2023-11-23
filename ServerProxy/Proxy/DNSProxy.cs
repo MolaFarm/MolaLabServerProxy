@@ -136,8 +136,7 @@ internal class DnsProxy
         var udpServerListener = _udpDnsServer.Listen(App.ProxyTokenSource.Token);
         var tcpServerListener = _tcpDnsServer.Listen(App.ProxyTokenSource.Token);
 
-        var checker = new Thread(HealthChecker);
-        checker.Start();
+        _ = Task.Run(HealthChecker);
 
         Notification.Show("代理服务", "代理服务已启动");
 
@@ -240,7 +239,7 @@ internal class DnsProxy
         }
     }
 
-    private static void HealthChecker()
+    private static async Task HealthChecker()
     {
         using IDnsClient dnsClient = new DnsUdpClient(IPAddress.Loopback);
         var lastStatus = Status.Starting;
@@ -251,13 +250,12 @@ internal class DnsProxy
             if (App.ProxyTokenSource.IsCancellationRequested) return;
             try
             {
-                var answer = Dispatcher.UIThread.Invoke(() => Awaiter.AwaitByPushFrame(
-                    dnsClient.Query(DnsQueryFactory.CreateQuery("git.labserver.internal"))));
+                var answer = await dnsClient.Query(DnsQueryFactory.CreateQuery("git.labserver.internal"));
                 currentStatus = Status.Healthy;
             }
             catch (Exception ex)
             {
-                _logger.LogTrace(ex, "UnHealthy connection detected!");
+                _logger.LogWarning(ex, "UnHealthy connection detected!");
                 currentStatus = Status.UnHealthy;
             }
             finally
@@ -279,7 +277,7 @@ internal class DnsProxy
                     }
                 }
 
-                Thread.Sleep(5000);
+                await Task.Delay(5000);
             }
         }
     }
