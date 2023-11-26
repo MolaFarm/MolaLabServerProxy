@@ -21,10 +21,8 @@ namespace ServerProxy;
 
 public class App : Application
 {
-    private static DnsProxy _proxy;
     private static List<NetworkInterface> _adapters;
-    private static UdpForwarder _udpForwarder;
-    private static TcpForwarder _tcpForwarder;
+    private static MixProtocalServer _mixProtocalServer;
     public static Receiver BroadcastReceiver;
     public static ILoggerFactory AppLoggerFactory;
     public static CancellationTokenSource ProxyTokenSource = new();
@@ -61,23 +59,9 @@ public class App : Application
                 BroadcastReceiver = new Receiver(new Uri($"https://{config.ServerIp}/"));
                 _ = Task.Run(BroadcastReceiver.ReceiveBroadcastAsync);
 
-                // Create Proxy
-                SetStatus(Status.Starting);
-                _proxy = new DnsProxy($"https://{config.ServerIp}/", config);
-                _ = Task.Run(_proxy.StartAsync, ProxyTokenSource.Token);
-
-                // Start Forwarder
-                if (Adapter.IsIpv6Available())
-                {
-                    _udpForwarder = new UdpForwarder();
-                    _tcpForwarder = new TcpForwarder();
-                    _ = Task.Run(_udpForwarder.StartAsync, ProxyTokenSource.Token);
-                    _ = Task.Run(_tcpForwarder.StartAsync, ProxyTokenSource.Token);
-                }
-
-                // Set DNS
-                _adapters = Adapter.ListAllInterface();
-                foreach (var adapter in _adapters) Adapter.CSetDns(adapter, "127.0.0.1", "::1");
+                // Start Proxy
+                _mixProtocalServer = new MixProtocalServer(config.ServerPort, config.ListeningPort);
+                _ = Task.Run(_mixProtocalServer.StartAsync, ProxyTokenSource.Token);
 
                 // Check for update
                 if (config.CheckUpdate)
@@ -109,8 +93,6 @@ public class App : Application
     {
         ProxyTokenSource.Cancel();
         UpdaterTokenSource.Cancel();
-        foreach (var adapter in _adapters) Adapter.CUnsetDns(adapter);
-        if (DnsProxy.HnsOriginalStatus.IsStarted) _proxy.ServiceRestore();
         Environment.Exit(0);
     }
 

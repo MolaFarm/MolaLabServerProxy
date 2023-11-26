@@ -17,7 +17,6 @@
 
 
     <ItemGroup>
-        <PackageReference Include="Ae.Dns.Server" Version="2.1.0"/>
         <PackageReference Include="Avalonia" Version="11.0.5"/>
         <PackageReference Include="Avalonia.Desktop" Version="11.0.5"/>
         <PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.5"/>
@@ -38,7 +37,7 @@
 
 
     <ItemGroup>
-        <ProjectReference Include="..\Ae.Dns.Client\Ae.Dns.Client.csproj"/>
+        <ProjectReference Include="..\Protocal\Protocal.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

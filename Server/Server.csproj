@@ -9,8 +9,13 @@
         <InvariantGlobalization>true</InvariantGlobalization>
     </PropertyGroup>
 
-    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-        <Exec Command="xcopy &quot;$(TargetDir)Updater.*&quot; &quot;$(ProjectDir)..\ServerProxy\&quot; /S /Y"/>
-    </Target>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Protocal\Protocal.csproj"/>
+    </ItemGroup>
 
 </Project>
