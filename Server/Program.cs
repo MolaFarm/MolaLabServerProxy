@@ -1,53 +1,97 @@
 ﻿using System.Net;
-using System.Net.Sockets;
+using System.Net.Quic;
+using System.Net.Security;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using Protocal.Handler.Server;
+using Protocol.Handler.Server;
 
 namespace Server;
 
-internal class Program
+[SupportedOSPlatform("linux")]
+public class Program
 {
-    private static ILoggerFactory loggerFactory;
-    private static ILogger<Program> logger;
-    private static Config config;
-    private static SocksClientHandler socksClientHandler;
+	private static ILoggerFactory loggerFactory;
+	private static ILogger<Program> logger;
+	private static QuicListener listener;
+	private static readonly CancellationTokenSource cancellationTokenSource = new();
+	private static Config config;
 
-    private static async Task Main(string[] args)
-    {
-        loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-        logger = loggerFactory.CreateLogger<Program>();
+	private static extern int signal(int signal, Action action);
 
-        // Read config
-        try
-        {
-            var rawConf = File.ReadAllText(Path.GetDirectoryName(Environment.ProcessPath) + "/config.json");
-            config = JsonSerializer.Deserialize(rawConf, SourceGenerationContext.Default.Config);
-            if (config == null) throw new InvalidDataException();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to load server configuration.");
-            Environment.Exit(-1);
-        }
+	private static async Task Main(string[] args)
+	{
+		PosixSignalRegistration.Create(PosixSignal.SIGINT, GratefullyShutdown);
+		PosixSignalRegistration.Create(PosixSignal.SIGTERM, GratefullyShutdown);
+		loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+		logger = loggerFactory.CreateLogger<Program>();
 
-        socksClientHandler = new SocksClientHandler(new X509Certificate2(config.Certificate),
-            loggerFactory.CreateLogger<SocksClientHandler>());
-        var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        listener.Bind(new IPEndPoint(IPAddress.Any, 1080));
-        listener.Listen(10);
-        logger.LogInformation($"Server is listening at {listener.LocalEndPoint as IPEndPoint}");
+		// Read config
+		try
+		{
+			var rawConf = await File.ReadAllTextAsync(Path.GetDirectoryName(Environment.ProcessPath) + "/config.json");
+			config = JsonSerializer.Deserialize(rawConf, SourceGenerationContext.Default.Config);
+			if (config == null) throw new InvalidDataException();
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine($"Failed to load server configuration: {ex.Message}");
+			Environment.Exit(-1);
+		}
 
-        while (true)
-            try
-            {
-                var client = await listener.AcceptAsync();
-                _ = Task.Run(() => socksClientHandler.HandleClientAsync(client));
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Failed to handle client");
-            }
-    }
+		// First, check if QUIC is supported.
+		if (!QuicListener.IsSupported)
+		{
+			Console.WriteLine("QUIC is not supported, check for presence of libmsquic and support of TLS 1.3.");
+			return;
+		}
+
+		// Share configuration for each incoming connection.
+		// This represents the minimal configuration necessary.
+		var serverConnectionOptions = new QuicServerConnectionOptions
+		{
+			DefaultStreamErrorCode = 0x0A,
+			DefaultCloseErrorCode = 0x0B,
+			ServerAuthenticationOptions = new SslServerAuthenticationOptions
+			{
+				ApplicationProtocols = new List<SslApplicationProtocol> { SslApplicationProtocol.Http3 },
+				ServerCertificate = new X509Certificate2(config.Certificate)
+			}
+		};
+
+		// Initialize, configure the listener and start listening.
+		listener = await QuicListener.ListenAsync(new QuicListenerOptions
+		{
+			ListenEndPoint = new IPEndPoint(IPAddress.Any, config.Port),
+			ApplicationProtocols = new List<SslApplicationProtocol> { SslApplicationProtocol.Http3 },
+			ConnectionOptionsCallback = (_, _, _) => ValueTask.FromResult(serverConnectionOptions)
+		});
+
+		logger.LogInformation($"Program is listening at {listener.LocalEndPoint}");
+
+		while (!cancellationTokenSource.IsCancellationRequested)
+			try
+			{
+				var connection = await listener.AcceptConnectionAsync();
+				_ = Task.Run(new QuicConnectionHandler(connection, cancellationTokenSource.Token,
+						loggerFactory.CreateLogger<QuicConnectionHandler>())
+					.HandleConnectionAsync);
+			}
+			catch (Exception ex)
+			{
+				logger.LogWarning(ex, "Failed to handle client");
+			}
+	}
+
+	private static void GratefullyShutdown(PosixSignalContext context)
+	{
+		logger.LogInformation($"Received Signal({context.Signal}). Gratefully shutting down...");
+		var operationCancelTask = cancellationTokenSource.CancelAsync();
+		operationCancelTask.Wait();
+		var listenerCloseTask = listener.DisposeAsync().AsTask();
+		listenerCloseTask.Wait();
+		Environment.Exit(0);
+	}
 }

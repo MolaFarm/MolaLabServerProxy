@@ -5,20 +5,37 @@ using Avalonia.Threading;
 
 namespace ServerProxy.Tools;
 
+/// <summary>
+///     Provides a utility class for asynchronous operations.
+/// </summary>
 internal class Awaiter
 {
-    public static TResult AwaitByPushFrame<TResult>(Task<TResult> task)
-    {
-        if (task == null) throw new ArgumentNullException(nameof(task));
-        Contract.EndContractBlock();
+	/// <summary>
+	///     Waits for the completion of a Task by using a Dispatcher frame.
+	/// </summary>
+	/// <typeparam name="TResult">The type of the result produced by the Task.</typeparam>
+	/// <param name="task">The Task to await.</param>
+	/// <returns>The result of the completed Task.</returns>
+	public static TResult AwaitByPushFrame<TResult>(Task<TResult> task)
+	{
+		// Check for a null task and throw an ArgumentNullException if null.
+		ArgumentNullException.ThrowIfNull(task);
+		Contract.EndContractBlock();
 
-        Dispatcher.UIThread.Invoke(() =>
-        {
-            var frame = new DispatcherFrame();
-            task.ContinueWith(t => { frame.Continue = false; });
-            Dispatcher.UIThread.PushFrame(frame);
-        });
+		// Invoke the UI thread to use the Dispatcher.
+		Dispatcher.UIThread.Invoke(() =>
+		{
+			// Create a new DispatcherFrame.
+			var frame = new DispatcherFrame();
 
-        return task.Result;
-    }
+			// Continue the frame when the task completes.
+			task.ContinueWith(t => { frame.Continue = false; });
+
+			// Push the frame onto the Dispatcher queue.
+			Dispatcher.UIThread.PushFrame(frame);
+		});
+
+		// Return the result of the completed task.
+		return task.Result;
+	}
 }

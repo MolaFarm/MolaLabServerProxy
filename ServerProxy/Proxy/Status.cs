@@ -2,7 +2,7 @@
 
 public enum Status
 {
-    Healthy,
-    UnHealthy,
-    Starting
+	Healthy,
+	UnHealthy,
+	Starting
 }

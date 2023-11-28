@@ -1,125 +1,205 @@
-﻿using System;
+﻿#pragma warning disable CA1416
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Net.Quic;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Threading;
 using Microsoft.Extensions.Logging;
-using Protocal.Enum.Socks;
-using Protocal.Handler.Client;
-using Protocal.Request.Socks;
+using Protocol.Enum.Quic;
+using Protocol.Handler.Client;
+using Protocol.Request.Quic;
 using ServerProxy.Tools;
 
 namespace ServerProxy.Proxy;
 
+/// <summary>
+///     Represents a mix protocol server for handling different proxy protocols.
+/// </summary>
 internal class MixProtocalServer
 {
-    private readonly ILogger<MixProtocalServer> _logger;
-    private readonly int _serverPort;
-    private HttpClientHandler _httpClientHandler;
-    private int _listenPort;
-    private IPEndPoint _remoteEndpoint;
-    private SocksClientHandler _socksClientHandler;
+	private readonly ILogger<MixProtocalServer> _logger;
+	private readonly int _serverPort;
+	private QuicConnection _connection;
+	private QuicClientConnectionOptions _connectionOptions;
+	private HttpClientHandler _httpClientHandler;
+	private int _listenPort;
+	private SocksClientHandler _socksClientHandler;
 
-    public MixProtocalServer(int serverPort, int listenPort)
-    {
-        _serverPort = serverPort;
-        _listenPort = listenPort;
-        _logger = App.AppLoggerFactory.CreateLogger<MixProtocalServer>();
-    }
+	/// <summary>
+	///     Initializes a new instance of the MixProtocalServer class.
+	/// </summary>
+	/// <param name="serverPort">The port of the server to connect to.</param>
+	/// <param name="listenPort">The port on which the server should listen for incoming connections.</param>
+	public MixProtocalServer(int serverPort, int listenPort)
+	{
+		_serverPort = serverPort;
+		_listenPort = listenPort;
+		_logger = App.AppLoggerFactory.CreateLogger<MixProtocalServer>();
+	}
 
-    public async Task StartAsync()
-    {
-        var preferIp = await RouteHelper.GetAvailableIP();
-        _remoteEndpoint = new IPEndPoint(preferIp, _serverPort);
-        _httpClientHandler =
-            new HttpClientHandler(_remoteEndpoint, App.AppLoggerFactory.CreateLogger<HttpClientHandler>());
-        _socksClientHandler =
-            new SocksClientHandler(_remoteEndpoint, App.AppLoggerFactory.CreateLogger<SocksClientHandler>());
-        var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        listener.Bind(new IPEndPoint(IPAddress.Loopback, 0));
-        listener.Listen(10);
-        _logger.LogInformation($"Server now listening at Loopback:{(listener.LocalEndPoint as IPEndPoint).Port}");
+	/// <summary>
+	///     Asynchronously starts the mix protocol server.
+	/// </summary>
+	/// <returns>A task representing the asynchronous operation.</returns>
+	public async Task StartAsync()
+	{
+		var preferIp = await RouteHelper.GetAvailableIP();
+		_connectionOptions = new QuicClientConnectionOptions
+		{
+			RemoteEndPoint = new IPEndPoint(preferIp, _serverPort),
+			DefaultStreamErrorCode = 0x0A,
+			DefaultCloseErrorCode = 0x0B,
+			MaxInboundUnidirectionalStreams = 10,
+			MaxInboundBidirectionalStreams = 100,
+			ClientAuthenticationOptions = new SslClientAuthenticationOptions
+			{
+				ApplicationProtocols = new List<SslApplicationProtocol> { SslApplicationProtocol.Http3 },
+				RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true
+			}
+		};
 
-        _ = Task.Run(HealthChecker, App.ProxyTokenSource.Token);
+		while (!App.ProxyTokenSource.IsCancellationRequested)
+			try
+			{
+				_connection = await QuicConnection.ConnectAsync(_connectionOptions);
+				_logger.LogInformation($"Connected {_connection.LocalEndPoint} --> {_connection.RemoteEndPoint}");
+				break;
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Failed to connect to server, will try again after 5s.");
+				await Task.Delay(5000, App.ProxyTokenSource.Token);
+			}
 
-        Notification.Show("代理服务", "代理服务已启动");
+		_httpClientHandler =
+			new HttpClientHandler(App.AppLoggerFactory.CreateLogger<HttpClientHandler>());
+		_socksClientHandler =
+			new SocksClientHandler(App.AppLoggerFactory.CreateLogger<SocksClientHandler>());
+		var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+		listener.Bind(new IPEndPoint(IPAddress.Loopback, _listenPort));
+		listener.Listen(10);
+		_logger.LogInformation($"Server now listening at {listener.LocalEndPoint as IPEndPoint}");
 
-        while (!App.ProxyTokenSource.IsCancellationRequested)
-            try
-            {
-                var client = await listener.AcceptAsync();
-                _ = Task.Run(() => DetectProtocalAndProxy(client));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to handle client");
-            }
-    }
+		var heartBeatStream = await _connection.OpenOutboundStreamAsync(QuicStreamType.Bidirectional);
+		_ = Task.Run(async () => await HealthChecker(heartBeatStream));
 
-    private async Task DetectProtocalAndProxy(Socket client)
-    {
-        var stream = new NetworkStream(client);
-        var buffer = new byte[4096];
-        var bytesRead = await stream.ReadAsync(buffer, 0, 4096);
-        if (buffer[0] == 0x05 && buffer[1] == (byte)(bytesRead - 2))
-            await _socksClientHandler.HandleClientAsync(client, buffer, bytesRead);
-        else
-            await _httpClientHandler.HandleClientAsync(client, buffer, bytesRead);
-    }
+		Notification.Show("代理服务", "代理服务已启动");
 
-    private async Task HealthChecker()
-    {
-        var lastStatus = Status.Starting;
-        var currentStatus = Status.Starting;
-        while (!App.ProxyTokenSource.IsCancellationRequested)
-            try
-            {
-                var client = new TcpClient(_remoteEndpoint.Address.ToString(), _remoteEndpoint.Port);
-                var stream = client.GetStream();
-                var sslStream = new SslStream(stream, false, (sender, certificate, chain, errors) => true);
-                await sslStream.AuthenticateAsClientAsync("proxy.labserver.internal");
-                var handshakeRequest = new HandShakeRequest
-                {
-                    Version = 5,
-                    AuthMethods = new List<AuthMethod> { AuthMethod.None }
-                };
-                await sslStream.WriteAsync(handshakeRequest.ToBytes());
-                var buffer = new byte[2];
-                await sslStream.ReadAsync(buffer);
-                if (buffer[0].Equals(5) && buffer[1].Equals(0))
-                    currentStatus = Status.Healthy;
-                else
-                    throw new InvalidDataException();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "UnHealthy connection detected!");
-                currentStatus = Status.UnHealthy;
-            }
-            finally
-            {
-                if (lastStatus != currentStatus)
-                {
-                    _logger.LogInformation($"Proxy status: {lastStatus} => {currentStatus}");
-                    lastStatus = currentStatus;
-                    Dispatcher.UIThread.Invoke(() => (Application.Current as App)?.SetStatus(currentStatus));
+		while (!App.ProxyTokenSource.IsCancellationRequested)
+			try
+			{
+				var client = await listener.AcceptAsync();
+				_ = Task.Run(() => DetectProtocalAndProxy(client));
+			}
+			catch (Exception ex)
+			{
+				_logger.LogWarning(ex, "Failed to handle client");
+			}
+	}
 
-                    switch (currentStatus)
-                    {
-                        case Status.Healthy:
-                            Notification.Show("提示", "代理服务状态: 健康");
-                            break;
-                        case Status.UnHealthy:
-                            Notification.Show("警告", "代理服务状态: 连接阻塞");
-                            break;
-                    }
-                }
+	/// <summary>
+	///     Asynchronously detects the protocol and handles the proxy for the incoming client.
+	/// </summary>
+	/// <param name="client">The incoming client socket.</param>
+	/// <returns>A task representing the asynchronous operation.</returns>
+	private async Task DetectProtocalAndProxy(Socket client)
+	{
+		var stream = new NetworkStream(client);
+		var buffer = new byte[4096];
+		var bytesRead = await stream.ReadAsync(buffer, 0, 4096);
+		if (buffer[0] == 0x05 && buffer[1] == (byte)(bytesRead - 2))
+			await _socksClientHandler.HandleClientAsync(client, buffer, bytesRead, _connection);
+		else
+			await _httpClientHandler.HandleClientAsync(client, buffer, bytesRead, _connection);
+	}
 
-                await Task.Delay(5000);
-            }
-    }
+	/// <summary>
+	///     Asynchronously performs health checking for the proxy server.
+	/// </summary>
+	/// <returns>A task representing the asynchronous operation.</returns>
+	private async Task HealthChecker(QuicStream stream)
+	{
+		var lastStatus = Status.Starting;
+		var currentStatus = Status.Starting;
+
+		await using (stream)
+		{
+			while (!App.ProxyTokenSource.IsCancellationRequested)
+				try
+				{
+					var heartBeatRequest = new HeartBeat
+					{
+						Actor = Actor.Client,
+						IsAlive = true,
+						Version = 5
+					};
+					var tokenSource = new CancellationTokenSource();
+					var timeoutTask = Task.Delay(5000, tokenSource.Token);
+					var writeTask = stream.WriteAsync(heartBeatRequest.ToBytes()).AsTask();
+					await Task.WhenAny(timeoutTask, writeTask);
+					tokenSource.Cancel();
+					if (!writeTask.IsCompletedSuccessfully) throw new TimeoutException();
+
+					var bytes = new byte[3];
+					tokenSource = new CancellationTokenSource();
+					timeoutTask = Task.Delay(5000, tokenSource.Token);
+					var readTask = stream.ReadAsync(bytes, 0, 3);
+					await Task.WhenAny(timeoutTask, readTask);
+					tokenSource.Cancel();
+					if (!readTask.IsCompletedSuccessfully) throw new TimeoutException();
+					heartBeatRequest = HeartBeat.FromBytes(bytes);
+					if (!(heartBeatRequest.Version.Equals(5) && heartBeatRequest.Actor.Equals(Actor.Server) &&
+					      heartBeatRequest.IsAlive))
+						throw
+							new InvalidDataException();
+					currentStatus = Status.Healthy;
+				}
+				catch (Exception ex)
+				{
+					_logger.LogWarning(ex, "UnHealthy connection detected!");
+					currentStatus = Status.UnHealthy;
+
+					// Try to recreate connection
+					await _connection.DisposeAsync();
+					try
+					{
+						_connection = await QuicConnection.ConnectAsync(_connectionOptions);
+						_logger.LogInformation(
+							$"Connected {_connection.LocalEndPoint} --> {_connection.RemoteEndPoint}");
+						stream = await _connection.OpenOutboundStreamAsync(QuicStreamType.Bidirectional);
+					}
+					catch (Exception e)
+					{
+						_logger.LogWarning(e, "Failed to connect to server, will try again later");
+					}
+				}
+				finally
+				{
+					if (lastStatus != currentStatus)
+					{
+						_logger.LogInformation($"Proxy status: {lastStatus} => {currentStatus}");
+						lastStatus = currentStatus;
+						Dispatcher.UIThread.Invoke(() => (Application.Current as App)?.SetStatus(currentStatus));
+
+						switch (currentStatus)
+						{
+							case Status.Healthy:
+								Notification.Show("提示", "代理服务状态: 健康");
+								break;
+							case Status.UnHealthy:
+								Notification.Show("警告", "代理服务状态: 连接阻塞");
+								break;
+						}
+					}
+
+					await Task.Delay(5000);
+				}
+		}
+	}
 }
