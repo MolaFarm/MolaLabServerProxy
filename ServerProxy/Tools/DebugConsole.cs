@@ -8,11 +8,11 @@ internal static class DebugConsole
 	///     Allocates a new console for current process.
 	/// </summary>
 	[DllImport("kernel32.dll")]
-	public static extern bool AllocConsole();
+    public static extern bool AllocConsole();
 
 	/// <summary>
 	///     Frees the console.
 	/// </summary>
 	[DllImport("kernel32.dll")]
-	public static extern bool FreeConsole();
+    public static extern bool FreeConsole();
 }

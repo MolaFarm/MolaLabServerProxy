@@ -17,25 +17,25 @@ internal class Awaiter
 	/// <param name="task">The Task to await.</param>
 	/// <returns>The result of the completed Task.</returns>
 	public static TResult AwaitByPushFrame<TResult>(Task<TResult> task)
-	{
-		// Check for a null task and throw an ArgumentNullException if null.
-		ArgumentNullException.ThrowIfNull(task);
-		Contract.EndContractBlock();
+    {
+        // Check for a null task and throw an ArgumentNullException if null.
+        ArgumentNullException.ThrowIfNull(task);
+        Contract.EndContractBlock();
 
-		// Invoke the UI thread to use the Dispatcher.
-		Dispatcher.UIThread.Invoke(() =>
-		{
-			// Create a new DispatcherFrame.
-			var frame = new DispatcherFrame();
+        // Invoke the UI thread to use the Dispatcher.
+        Dispatcher.UIThread.Invoke(() =>
+        {
+            // Create a new DispatcherFrame.
+            var frame = new DispatcherFrame();
 
-			// Continue the frame when the task completes.
-			task.ContinueWith(t => { frame.Continue = false; });
+            // Continue the frame when the task completes.
+            task.ContinueWith(t => { frame.Continue = false; });
 
-			// Push the frame onto the Dispatcher queue.
-			Dispatcher.UIThread.PushFrame(frame);
-		});
+            // Push the frame onto the Dispatcher queue.
+            Dispatcher.UIThread.PushFrame(frame);
+        });
 
-		// Return the result of the completed task.
-		return task.Result;
-	}
+        // Return the result of the completed task.
+        return task.Result;
+    }
 }

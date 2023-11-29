@@ -2,7 +2,7 @@
 
 public enum ProxyCommand
 {
-	Connect = 1,
-	Bind = 2,
-	Udp = 3
+    Connect = 1,
+    Bind = 2,
+    Udp = 3
 }

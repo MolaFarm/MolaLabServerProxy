@@ -15,7 +15,7 @@ internal static class Notification
 	/// <param name="title">Byte array representing the notification title.</param>
 	/// <param name="message">Byte array representing the notification message.</param>
 	[DllImport("ToastNotification.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern void Show(byte[] appname, byte[] title, byte[] message);
+    private static extern void Show(byte[] appname, byte[] title, byte[] message);
 
 	/// <summary>
 	///     Displays a notification with the specified title and message.
@@ -23,10 +23,10 @@ internal static class Notification
 	/// <param name="title">The title of the notification.</param>
 	/// <param name="message">The message of the notification.</param>
 	public static void Show(string? title, string? message)
-	{
-		var appnameBytes = Encoding.UTF8.GetBytes("ServerProxy");
-		var titleBytes = Encoding.UTF8.GetBytes(title);
-		var messageBytes = Encoding.UTF8.GetBytes(message);
-		Show(appnameBytes, titleBytes, messageBytes);
-	}
+    {
+        var appnameBytes = Encoding.UTF8.GetBytes("ServerProxy");
+        var titleBytes = Encoding.UTF8.GetBytes(title);
+        var messageBytes = Encoding.UTF8.GetBytes(message);
+        Show(appnameBytes, titleBytes, messageBytes);
+    }
 }

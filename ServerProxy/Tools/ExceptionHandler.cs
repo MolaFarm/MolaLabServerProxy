@@ -13,16 +13,16 @@ internal static class ExceptionHandler
 	/// </summary>
 	/// <param name="ex">The exception to handle.</param>
 	public static void Handle(Exception ex)
-	{
-		MessageBox.Show("致命错误",
-			$"""
-			 程序遇到无法处理的异常，即将退出，请记录该错误信息并反馈给维护人员
-			 错误信息: {ex.Message}
+    {
+        MessageBox.Show("致命错误",
+            $"""
+             程序遇到无法处理的异常，即将退出，请记录该错误信息并反馈给维护人员
+             错误信息: {ex.Message}
 
-			 错误回溯:
-			 {ex.StackTrace}
-			 """,
-			ButtonEnum.Ok, Icon.Error);
-		Environment.Exit(-1);
-	}
+             错误回溯:
+             {ex.StackTrace}
+             """,
+            ButtonEnum.Ok, Icon.Error);
+        Environment.Exit(-1);
+    }
 }
