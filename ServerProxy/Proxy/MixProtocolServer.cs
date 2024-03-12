@@ -24,12 +24,12 @@ namespace ServerProxy.Proxy;
 /// </summary>
 internal class MixProtocolServer
 {
+    private readonly int _listenPort;
     private readonly ILogger<MixProtocolServer> _logger;
     private readonly int _serverPort;
     private QuicConnection _connection;
     private QuicClientConnectionOptions _connectionOptions;
     private HttpClientHandler _httpClientHandler;
-    private readonly int _listenPort;
     private SocksClientHandler _socksClientHandler;
 
     /// <summary>

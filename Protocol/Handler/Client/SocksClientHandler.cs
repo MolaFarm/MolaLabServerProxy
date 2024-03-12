@@ -13,23 +13,23 @@ namespace Protocol.Handler.Client;
 /// </summary>
 public class SocksClientHandler : BaseSocksClientHandler
 {
-	/// <summary>
-	///     Initializes a new instance of the <see cref="SocksClientHandler" /> class.
-	/// </summary>
-	/// <param name="logger">The logger for logging.</param>
-	public SocksClientHandler(ILogger<SocksClientHandler> logger) : base(logger)
+    /// <summary>
+    ///     Initializes a new instance of the <see cref="SocksClientHandler" /> class.
+    /// </summary>
+    /// <param name="logger">The logger for logging.</param>
+    public SocksClientHandler(ILogger<SocksClientHandler> logger) : base(logger)
     {
     }
 
-	/// <summary>
-	///     Handles the client asynchronously based on the SOCKS protocol.
-	/// </summary>
-	/// <param name="client">The client socket.</param>
-	/// <param name="preReadRequest">Pre-read request bytes.</param>
-	/// <param name="requestLength">Length of the request.</param>
-	/// <param name="connection">The QUIC connection.</param>
-	/// <returns>A task representing the asynchronous operation.</returns>
-	public async Task HandleClientAsync(Socket client, byte[] preReadRequest, int requestLength,
+    /// <summary>
+    ///     Handles the client asynchronously based on the SOCKS protocol.
+    /// </summary>
+    /// <param name="client">The client socket.</param>
+    /// <param name="preReadRequest">Pre-read request bytes.</param>
+    /// <param name="requestLength">Length of the request.</param>
+    /// <param name="connection">The QUIC connection.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public async Task HandleClientAsync(Socket client, byte[] preReadRequest, int requestLength,
         QuicConnection connection)
     {
         using (client)
@@ -82,15 +82,15 @@ public class SocksClientHandler : BaseSocksClientHandler
         }
     }
 
-	/// <summary>
-	///     Forwards the connection to a proxy server asynchronously.
-	/// </summary>
-	/// <param name="handShakeRequest">The handshake request.</param>
-	/// <param name="proxyRequest">The proxy request.</param>
-	/// <param name="client">The client socket.</param>
-	/// <param name="connection">The QUIC connection.</param>
-	/// <returns>A task representing the asynchronous operation.</returns>
-	private async Task ForwardToProxyServer(HandShakeRequest handShakeRequest, ProxyRequest proxyRequest, Socket client,
+    /// <summary>
+    ///     Forwards the connection to a proxy server asynchronously.
+    /// </summary>
+    /// <param name="handShakeRequest">The handshake request.</param>
+    /// <param name="proxyRequest">The proxy request.</param>
+    /// <param name="client">The client socket.</param>
+    /// <param name="connection">The QUIC connection.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private async Task ForwardToProxyServer(HandShakeRequest handShakeRequest, ProxyRequest proxyRequest, Socket client,
         QuicConnection connection)
     {
         await using (var remoteStream = await connection.OpenOutboundStreamAsync(QuicStreamType.Bidirectional))

@@ -1,10 +1,14 @@
 ﻿using System;
+using System.IO;
 using System.Net;
-using System.Net.Http;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Threading;
+using CurlThin;
+using CurlThin.Enums;
 using ServerProxy.ViewModels;
 
 namespace ServerProxy.Tools;
@@ -22,11 +26,33 @@ public class RouteHelper
     {
         var serverIp =
             Dispatcher.UIThread.Invoke(() => (Application.Current.DataContext as AppViewModel).AppConfig.ServerIp);
-        var client = CreateHttpClient($"https://{serverIp}/");
-        var url = "dns-query?name=panel.labserver.internal";
-        var response = await client.GetAsync(url);
-        response.EnsureSuccessStatusCode();
-        var resp = await response.Content.ReadAsStringAsync();
+        var global = CurlNative.Init();
+        var easy = CurlNative.Easy.Init();
+        string resp;
+
+        try
+        {
+            CurlNative.Easy.SetOpt(easy, CURLoption.URL, $"https://{serverIp}/dns-query?name=panel.labserver.internal");
+            CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYPEER, 0);
+            CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYHOST, 0);
+            var stream = new MemoryStream();
+            CurlNative.Easy.SetOpt(easy, CURLoption.WRITEFUNCTION, (data, size, nmemb, user) =>
+            {
+                var length = (int)size * (int)nmemb;
+                var buffer = new byte[length];
+                Marshal.Copy(data, buffer, 0, length);
+                stream.Write(buffer, 0, length);
+                return (UIntPtr)length;
+            });
+
+            var result = CurlNative.Easy.Perform(easy);
+            resp = Encoding.UTF8.GetString(stream.ToArray());
+        }
+        finally
+        {
+            easy.Dispose();
+        }
+
         using var doc = JsonDocument.Parse(resp);
         IPAddress? internalIp = null;
         foreach (var e in doc.RootElement.GetProperty("Answer").EnumerateArray())
@@ -34,33 +60,34 @@ public class RouteHelper
             var ip = e.GetProperty("data").ToString();
             if (ip.StartsWith("IP_ADDRESS_START_HERE"))
             {
-                using var httpGenerate204Client = CreateHttpClient($"https://{ip}/");
-                using var httpGenerate204Response = await httpGenerate204Client.GetAsync("generate_204");
-                if (httpGenerate204Response.StatusCode == HttpStatusCode.NoContent) internalIp = IPAddress.Parse(ip);
+                global = CurlNative.Init();
+                easy = CurlNative.Easy.Init();
+
+                try
+                {
+                    CurlNative.Easy.SetOpt(easy, CURLoption.URL, $"https://{ip}/generate_204");
+                    CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYPEER, 0);
+                    CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYHOST, 0);
+                    var stream = new MemoryStream();
+                    CurlNative.Easy.SetOpt(easy, CURLoption.WRITEFUNCTION, (data, size, nmemb, user) =>
+                    {
+                        var length = (int)size * (int)nmemb;
+                        var buffer = new byte[length];
+                        Marshal.Copy(data, buffer, 0, length);
+                        stream.Write(buffer, 0, length);
+                        return (UIntPtr)length;
+                    });
+
+                    var result = CurlNative.Easy.Perform(easy);
+                    if (result == CURLcode.OK) internalIp = IPAddress.Parse(ip);
+                }
+                finally
+                {
+                    easy.Dispose();
+                }
             }
         }
 
         return internalIp ?? IPAddress.Parse(serverIp);
-    }
-
-	/// <summary>
-	///     Creates an HttpClient instance with custom certificate validation.
-	/// </summary>
-	/// <param name="baseAddress">The base address for the HttpClient.</param>
-	/// <returns>An HttpClient instance.</returns>
-	private static HttpClient CreateHttpClient(string baseAddress)
-    {
-        var handler = new HttpClientHandler
-        {
-            ClientCertificateOptions = ClientCertificateOption.Manual,
-            ServerCertificateCustomValidationCallback = (httpRequestMessage, cert, cetChain, policyErrors) => true
-        };
-
-        var client = new HttpClient(handler)
-        {
-            BaseAddress = new Uri(baseAddress)
-        };
-
-        return client;
     }
 }

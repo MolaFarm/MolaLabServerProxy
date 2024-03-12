@@ -16,23 +16,23 @@ namespace Protocol.Handler.Client;
 /// </summary>
 public class HttpClientHandler : BaseHttpClientHandler
 {
-	/// <summary>
-	///     Initializes a new instance of the <see cref="HttpClientHandler" /> class.
-	/// </summary>
-	/// <param name="logger">Logger for logging events.</param>
-	public HttpClientHandler(ILogger<HttpClientHandler> logger) : base(logger)
+    /// <summary>
+    ///     Initializes a new instance of the <see cref="HttpClientHandler" /> class.
+    /// </summary>
+    /// <param name="logger">Logger for logging events.</param>
+    public HttpClientHandler(ILogger<HttpClientHandler> logger) : base(logger)
     {
     }
 
-	/// <summary>
-	///     Handles the HTTP client asynchronously.
-	/// </summary>
-	/// <param name="client">The client socket.</param>
-	/// <param name="preReadRequest">The pre-read request data.</param>
-	/// <param name="requestLength">The length of the request.</param>
-	/// <param name="connection">The QUIC connection.</param>
-	/// <returns>A task representing the asynchronous operation.</returns>
-	public async Task HandleClientAsync(Socket client, byte[] preReadRequest, int requestLength,
+    /// <summary>
+    ///     Handles the HTTP client asynchronously.
+    /// </summary>
+    /// <param name="client">The client socket.</param>
+    /// <param name="preReadRequest">The pre-read request data.</param>
+    /// <param name="requestLength">The length of the request.</param>
+    /// <param name="connection">The QUIC connection.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public async Task HandleClientAsync(Socket client, byte[] preReadRequest, int requestLength,
         QuicConnection connection)
     {
         // Read the HTTP request from the client.
@@ -68,14 +68,14 @@ public class HttpClientHandler : BaseHttpClientHandler
         }
     }
 
-	/// <summary>
-	///     Forwards the HTTP request to a proxy server.
-	/// </summary>
-	/// <param name="httpRequest">The HTTP request to forward.</param>
-	/// <param name="client">The client socket.</param>
-	/// <param name="connection">The QUIC connection.</param>
-	/// <returns>A task representing the asynchronous operation.</returns>
-	private async Task ForwardToProxyServer(HttpRequest httpRequest, Socket client, QuicConnection connection)
+    /// <summary>
+    ///     Forwards the HTTP request to a proxy server.
+    /// </summary>
+    /// <param name="httpRequest">The HTTP request to forward.</param>
+    /// <param name="client">The client socket.</param>
+    /// <param name="connection">The QUIC connection.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private async Task ForwardToProxyServer(HttpRequest httpRequest, Socket client, QuicConnection connection)
     {
         await using (var remoteStream = await connection.OpenOutboundStreamAsync(QuicStreamType.Bidirectional))
         await using (var clientStream = new NetworkStream(client))

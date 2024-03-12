@@ -3,12 +3,14 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Threading;
+using CurlThin;
+using CurlThin.Enums;
+using CurlThin.SafeHandles;
 using Microsoft.Extensions.Logging;
 using MsBox.Avalonia.Enums;
 
@@ -48,7 +50,6 @@ public class Updater
 
     private void Check()
     {
-        // Wait for DNS Ready
         App.IsServiceHealthy.Wait();
         App.BroadcastReceiver.IsReceiveOnce.Wait();
         if (App.UpdaterTokenSource.IsCancellationRequested) return;
@@ -95,12 +96,44 @@ public class Updater
     {
         var hostname = new Uri(_baseAddress).Host;
         var serverIp = Awaiter.AwaitByPushFrame(RouteHelper.GetAvailableIP());
-        using var client = CreateHttpClient(_baseAddress.Replace(hostname, serverIp.ToString()));
-        client.DefaultRequestHeaders.Host = hostname;
-        var url = $"api/v4/projects/{ProjectID}/releases";
-        var response = Awaiter.AwaitByPushFrame(client.GetAsync(url));
-        response.EnsureSuccessStatusCode();
-        var resp = Awaiter.AwaitByPushFrame(response.Content.ReadAsStringAsync());
+        string resp;
+
+        // curl_global_init() with default flags.
+        var global = CurlNative.Init();
+
+        // curl_easy_init() to create easy handle.
+        var easy = CurlNative.Easy.Init();
+        try
+        {
+            CurlNative.Easy.SetOpt(easy, CURLoption.URL,
+                $"{_baseAddress.Replace(hostname, serverIp.ToString())}/api/v4/projects/{ProjectID}/releases");
+            CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYPEER, 0);
+            CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYHOST, 0);
+            var headers = CurlNative.Slist.Append(SafeSlistHandle.Null, $"Host: {hostname}");
+            CurlNative.Slist.Append(headers, $"PRIVATE-TOKEN: {AccessToken}");
+            CurlNative.Slist.Append(headers, "Accept: application/json");
+            CurlNative.Easy.SetOpt(easy, CURLoption.HTTPHEADER, headers.DangerousGetHandle());
+
+            var stream = new MemoryStream();
+            CurlNative.Easy.SetOpt(easy, CURLoption.WRITEFUNCTION, (data, size, nmemb, user) =>
+            {
+                var length = (int)size * (int)nmemb;
+                var buffer = new byte[length];
+                Marshal.Copy(data, buffer, 0, length);
+                stream.Write(buffer, 0, length);
+                return (UIntPtr)length;
+            });
+
+            var result = CurlNative.Easy.Perform(easy);
+
+            resp = Encoding.UTF8.GetString(stream.ToArray());
+            CurlNative.Slist.FreeAll(headers);
+        }
+        finally
+        {
+            easy.Dispose();
+        }
+
         using var doc = JsonDocument.Parse(resp);
         var info = FileVersionInfo.GetVersionInfo(Environment.ProcessPath);
         VersionInfo? targetVersion = null;
@@ -152,24 +185,5 @@ public class Updater
             CreateNoWindow = true,
             WorkingDirectory = Path.GetDirectoryName(Environment.ProcessPath)
         });
-    }
-
-    private HttpClient CreateHttpClient(string baseAddress)
-    {
-        var handler = new HttpClientHandler
-        {
-            ClientCertificateOptions = ClientCertificateOption.Manual,
-            ServerCertificateCustomValidationCallback = (httpRequestMessage, cert, cetChain, policyErrors) => true
-        };
-
-        var client = new HttpClient(handler)
-        {
-            BaseAddress = new Uri(baseAddress)
-        };
-
-        client.DefaultRequestHeaders.Add("PRIVATE-TOKEN", AccessToken);
-        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-        return client;
     }
 }

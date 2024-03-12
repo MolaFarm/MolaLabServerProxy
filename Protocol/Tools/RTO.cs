@@ -3,11 +3,11 @@
 public class RTO
 {
     private readonly double Alpha = 0.125;
-    private double BackoffFactor = 1;
     private readonly double Beta = 0.25;
     private readonly double ClockGranularity;
-    private double CurrentRTO;
     private readonly double MinimumRTO;
+    private double BackoffFactor = 1;
+    private double CurrentRTO;
     private double RTTVAR;
     private double SRTT;
 

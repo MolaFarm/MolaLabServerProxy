@@ -9,10 +9,10 @@ namespace ServerProxy.Tools;
 /// </summary>
 internal static class CertificateUtil
 {
-	/// <summary>
-	///     Installs the root certificate in the local machine's root certificate store.
-	/// </summary>
-	public static void Install()
+    /// <summary>
+    ///     Installs the root certificate in the local machine's root certificate store.
+    /// </summary>
+    public static void Install()
     {
         X509Store store = new(StoreName.Root, StoreLocation.LocalMachine);
         const string thumbprint = "512cb359732dd45aa6991a795d58d4b3167441d7";

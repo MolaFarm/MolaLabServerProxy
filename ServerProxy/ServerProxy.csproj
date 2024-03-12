@@ -13,6 +13,8 @@
     <PropertyGroup>
         <_MsQuicLib Condition="'$(RuntimeIdentifier)' == 'win-x64'">$(MSBuildThisFileDirectory)\Libs\MsQuic\x64-OpenSSL\msquic.dll</_MsQuicLib>
         <_MsQuicLib Condition="'$(RuntimeIdentifier)' == 'win-arm64'">$(MSBuildThisFileDirectory)\Libs\MsQuic\ARM64-SChannel\msquic.dll</_MsQuicLib>
+        <_LibCurl Condition="'$(RuntimeIdentifier)' == 'win-x64'">$(MSBuildThisFileDirectory)\Libs\cURL\x64\libcurl.dll</_LibCurl>
+        <_LibCurl Condition="'$(RuntimeIdentifier)' == 'win-arm64'">$(MSBuildThisFileDirectory)\Libs\cURL\ARM64\libcurl.dll</_LibCurl>
     </PropertyGroup>
 
     <ItemGroup>
@@ -30,6 +32,8 @@
         <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
         <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.5"/>
         <PackageReference Include="Avalonia.ReactiveUI" Version="11.0.5"/>
+        <PackageReference Include="CurlThin" Version="0.0.7"/>
+        <PackageReference Include="CurlThin.Native" Version="0.0.8"/>
         <PackageReference Include="GitVersion.MsBuild" Version="5.12.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -62,11 +66,19 @@
         <Exec Command="xcopy &quot;$(ProjectDir)*Updater.*&quot; &quot;$(TargetDir)&quot; /Y"/>
     </Target>
 
-    <Target Name="TakeAction" AfterTargets="Build">
+    <Target Name="BuildCopyMsQuic" AfterTargets="Build">
         <Copy SourceFiles="$(_MsQuicLib)" DestinationFolder="$(OutDir)"/>
     </Target>
 
-    <Target Name="TakeAction" AfterTargets="Publish">
+    <Target Name="BuildCopyLibCurl" AfterTargets="Build">
+        <Copy SourceFiles="$(_LibCurl)" DestinationFolder="$(OutDir)"/>
+    </Target>
+
+    <Target Name="PublishCopyMsQuic" AfterTargets="Publish">
         <Copy SourceFiles="$(_MsQuicLib)" DestinationFolder="$(PublishDir)"/>
+    </Target>
+
+    <Target Name="PublishCopyLibCurl" AfterTargets="Publish">
+        <Copy SourceFiles="$(_LibCurl)" DestinationFolder="$(PublishDir)"/>
     </Target>
 </Project>

@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Globalization;
-using System.Net.Http;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Threading;
+using CurlThin;
+using CurlThin.Enums;
 using Microsoft.Extensions.Logging;
 using ServerProxy.Tools;
 using ServerProxy.ViewModels;
@@ -33,28 +37,6 @@ public class Receiver(Uri baseaddr)
 	public BroadCastMessage? Message;
 
 	/// <summary>
-	///     Creates an HttpClient instance configured with a base address and custom certificate validation.
-	/// </summary>
-	/// <returns>An HttpClient instance.</returns>
-	private HttpClient CreateHttpClient()
-    {
-        // Configuration for HttpClient with custom certificate validation.
-        var handler = new HttpClientHandler
-        {
-            ClientCertificateOptions = ClientCertificateOption.Manual,
-            ServerCertificateCustomValidationCallback = (httpRequestMessage, cert, certChain, policyErrors) => true
-        };
-
-        // Create and configure HttpClient.
-        var client = new HttpClient(handler)
-        {
-            BaseAddress = baseaddr
-        };
-
-        return client;
-    }
-
-	/// <summary>
 	///     Asynchronously receives broadcast messages from the server.
 	/// </summary>
 	/// <returns>A task representing the asynchronous operation.</returns>
@@ -62,8 +44,7 @@ public class Receiver(Uri baseaddr)
     {
         // Logger for logging broadcast-related events.
         var logger = App.AppLoggerFactory.CreateLogger<Receiver>();
-        using var client = CreateHttpClient();
-        const string uri = "broadcast/current";
+        var url = $"{baseaddr}/broadcast/current";
         var lastReadDate = DateTime.MinValue;
 
         while (true)
@@ -72,12 +53,12 @@ public class Receiver(Uri baseaddr)
 
             try
             {
-                // Send a GET request to retrieve the current broadcast time from the server.
-                var response = await client.GetAsync(uri);
-                response.EnsureSuccessStatusCode();
-
-                // Read the response content as a string.
-                responseData = await response.Content.ReadAsStringAsync();
+                responseData = HttpGet(url);
+                if (responseData == null)
+                {
+                    await Task.Delay(10000);
+                    continue;
+                }
             }
             catch (Exception)
             {
@@ -176,18 +157,45 @@ public class Receiver(Uri baseaddr)
 	/// <returns>A task representing the asynchronous operation.</returns>
 	private async Task<BroadCastMessage?> GetBroadCastMessage()
     {
-        using var client = CreateHttpClient();
         const string uri = "broadcast/message";
 
-        // Send a GET request to retrieve the broadcast message.
-        var response = await client.GetAsync(uri);
-        response.EnsureSuccessStatusCode();
-
         // Read the response content as a string.
-        var resp = await response.Content.ReadAsStringAsync();
+        var resp = HttpGet($"{baseaddr}/{uri}");
 
         // Parse the JSON string into a BroadCastMessage object.
         using var doc = JsonDocument.Parse(resp);
         return JsonSerializer.Deserialize(resp, SourceGenerationContext.Default.BroadCastMessage);
+    }
+
+    private string? HttpGet(string url)
+    {
+        var global = CurlNative.Init();
+        var easy = CurlNative.Easy.Init();
+        string? resp = null;
+
+        try
+        {
+            CurlNative.Easy.SetOpt(easy, CURLoption.URL, url);
+            CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYPEER, 0);
+            CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYHOST, 0);
+            var stream = new MemoryStream();
+            CurlNative.Easy.SetOpt(easy, CURLoption.WRITEFUNCTION, (data, size, nmemb, user) =>
+            {
+                var length = (int)size * (int)nmemb;
+                var buffer = new byte[length];
+                Marshal.Copy(data, buffer, 0, length);
+                stream.Write(buffer, 0, length);
+                return (UIntPtr)length;
+            });
+
+            var result = CurlNative.Easy.Perform(easy);
+            resp = Encoding.UTF8.GetString(stream.ToArray());
+        }
+        finally
+        {
+            easy.Dispose();
+        }
+
+        return resp;
     }
 }
