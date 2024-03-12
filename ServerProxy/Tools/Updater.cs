@@ -28,83 +28,69 @@ public class Updater
         _baseAddress = baseAddress;
     }
 
-    public async Task CheckUpdate()
+    public async void CheckUpdate()
     {
-        try
-        {
-            Check();
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show("更新检查失败",
-                $"""
-                 更新检查失败，请检查配置文件中的 `baseUpdateAddr` 是否正确，并确保没有设置系统代理
-                 错误信息: {ex.Message}
+	    try
+	    {
+            App.IsServiceHealthy.Wait();
+            App.BroadcastReceiver.IsReceiveOnce.Wait();
+		    if (App.UpdaterTokenSource.IsCancellationRequested) return;
+		    var logger = App.AppLoggerFactory.CreateLogger<Updater>();
+		    var latestVersion = GetVersionInfo(out var currentVersion);
 
-                 错误回溯:
-                 {ex.StackTrace}
-                 """,
-                ButtonEnum.Ok, Icon.Warning);
-        }
-    }
+		    if (DateTime.Compare(latestVersion.ReleaseDate, currentVersion.ReleaseDate) <= 0) return;
 
-    private void Check()
-    {
-        App.IsServiceHealthy.Wait();
-        App.BroadcastReceiver.IsReceiveOnce.Wait();
-        if (App.UpdaterTokenSource.IsCancellationRequested) return;
+		    logger.LogWarning($"""
+		                       New version detected:
+		                       * Current Version:
+		                         Commit: {currentVersion.CommitSha}
+		                         Release Date: {(currentVersion.ReleaseDate != DateTime.MinValue ? currentVersion.ReleaseDate : "N/A")}
+		                       * Latest Version:
+		                         Commit: {latestVersion.CommitSha}
+		                         Release Date: {latestVersion.ReleaseDate}
+		                       """);
 
-        var logger = App.AppLoggerFactory.CreateLogger<Updater>();
+		    var newVerMessage = currentVersion.ReleaseDate != DateTime.MinValue
+			    ? "检测到新版本，是否要进行更新？"
+			    : "检测到当前正在使用孤立/开发版本，是否要更新到最新的正式版本？";
 
-        var latestVersion = GetVersionInfo(out var currentVersion);
+		    var result = MessageBox.Show("检测到新版本",
+			    $"""
+			     {newVerMessage}
+			     我们建议新版本发布时尽快进行更新，以保证服务器能够正常访问
+			     更新需要手动进行，当按下“是”时，程序将自动更新
 
-        if (DateTime.Compare(latestVersion.ReleaseDate, currentVersion.ReleaseDate) <= 0) return;
+			     新版本哈希: {latestVersion.CommitSha}
+			     发布日期(UTC标准时间): {latestVersion.ReleaseDate.ToString(CultureInfo.InvariantCulture)}
+			     """, ButtonEnum.YesNo,
+			    currentVersion.ReleaseDate != DateTime.MinValue ? Icon.Info : Icon.Warning);
 
-        logger.LogWarning($"""
-                           New version detected:
-                           * Current Version:
-                             Commit: {currentVersion.CommitSha}
-                             Release Date: {(currentVersion.ReleaseDate != DateTime.MinValue ? currentVersion.ReleaseDate : "N/A")}
-                           * Latest Version:
-                             Commit: {latestVersion.CommitSha}
-                             Release Date: {latestVersion.ReleaseDate}
-                           """);
+		    if (result == ButtonResult.Yes)
+		    {
+			    LaunchUpdater(latestVersion);
+			    Dispatcher.UIThread.Invoke(App.OnExit);
+		    }
+		}
+	    catch (Exception ex)
+	    {
+		    MessageBox.Show("更新检查失败",
+			    $"""
+			     更新检查失败，请检查配置文件中的 `baseUpdateAddr` 是否正确，并确保没有设置系统代理
+			     错误信息: {ex.Message}
 
-        var newVerMessage = currentVersion.ReleaseDate != DateTime.MinValue
-            ? "检测到新版本，是否要进行更新？"
-            : "检测到当前正在使用孤立/开发版本，是否要更新到最新的正式版本？";
-
-        var result = MessageBox.Show("检测到新版本",
-            $"""
-             {newVerMessage}
-             我们建议新版本发布时尽快进行更新，以保证服务器能够正常访问
-             更新需要手动进行，当按下“是”时，程序将自动更新
-
-             新版本哈希: {latestVersion.CommitSha}
-             发布日期(UTC标准时间): {latestVersion.ReleaseDate.ToString(CultureInfo.InvariantCulture)}
-             """, ButtonEnum.YesNo,
-            currentVersion.ReleaseDate != DateTime.MinValue ? Icon.Info : Icon.Warning);
-
-        if (result == ButtonResult.Yes)
-        {
-            LaunchUpdater(latestVersion);
-            Dispatcher.UIThread.Invoke(App.OnExit);
-        }
+			     错误回溯:
+			     {ex.StackTrace}
+			     """,
+			    ButtonEnum.Ok, Icon.Warning);
+		}
     }
 
     public VersionInfo GetVersionInfo(out VersionInfo currentVersion, string? tagName = null, string? commitSha = null)
     {
         var hostname = new Uri(_baseAddress).Host;
         var serverIp = Awaiter.AwaitByPushFrame(RouteHelper.GetAvailableIP());
-        string resp;
-
-        // curl_global_init() with default flags.
-        var global = CurlNative.Init();
-
-        // curl_easy_init() to create easy handle.
         var easy = CurlNative.Easy.Init();
-        try
-        {
+
             CurlNative.Easy.SetOpt(easy, CURLoption.URL,
                 $"{_baseAddress.Replace(hostname, serverIp.ToString())}/api/v4/projects/{ProjectID}/releases");
             CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYPEER, 0);
@@ -124,17 +110,13 @@ public class Updater
                 return (UIntPtr)length;
             });
 
-            var result = CurlNative.Easy.Perform(easy);
-
-            resp = Encoding.UTF8.GetString(stream.ToArray());
+            var result = Dispatcher.UIThread.Invoke(() =>
+            {
+	            return App.HttpHelper.HttpGet(easy);
+            });
             CurlNative.Slist.FreeAll(headers);
-        }
-        finally
-        {
-            easy.Dispose();
-        }
 
-        using var doc = JsonDocument.Parse(resp);
+        using var doc = JsonDocument.Parse(result.data);
         var info = FileVersionInfo.GetVersionInfo(Environment.ProcessPath);
         VersionInfo? targetVersion = null;
         currentVersion = new VersionInfo

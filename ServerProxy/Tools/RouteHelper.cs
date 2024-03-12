@@ -26,66 +26,41 @@ public class RouteHelper
     {
         var serverIp =
             Dispatcher.UIThread.Invoke(() => (Application.Current.DataContext as AppViewModel).AppConfig.ServerIp);
-        var global = CurlNative.Init();
         var easy = CurlNative.Easy.Init();
-        string resp;
 
-        try
-        {
-            CurlNative.Easy.SetOpt(easy, CURLoption.URL, $"https://{serverIp}/dns-query?name=panel.labserver.internal");
-            CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYPEER, 0);
-            CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYHOST, 0);
-            var stream = new MemoryStream();
-            CurlNative.Easy.SetOpt(easy, CURLoption.WRITEFUNCTION, (data, size, nmemb, user) =>
-            {
-                var length = (int)size * (int)nmemb;
-                var buffer = new byte[length];
-                Marshal.Copy(data, buffer, 0, length);
-                stream.Write(buffer, 0, length);
-                return (UIntPtr)length;
-            });
+	    CurlNative.Easy.SetOpt(easy, CURLoption.URL, $"https://{serverIp}/dns-query?name=panel.labserver.internal");
+	    CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYPEER, 0);
+	    CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYHOST, 0);
+	    var result = Dispatcher.UIThread.Invoke(() =>
+	    {
+		    return App.HttpHelper.HttpGet(easy);
+	    });
 
-            var result = CurlNative.Easy.Perform(easy);
-            resp = Encoding.UTF8.GetString(stream.ToArray());
-        }
-        finally
-        {
-            easy.Dispose();
-        }
+	    if (result.response != CURLcode.OK)
+	    {
+		    throw new Exception($"Failed to get available IP address: {result.response}");
+	    }
 
-        using var doc = JsonDocument.Parse(resp);
+        using var doc = JsonDocument.Parse(result.data);
         IPAddress? internalIp = null;
         foreach (var e in doc.RootElement.GetProperty("Answer").EnumerateArray())
         {
             var ip = e.GetProperty("data").ToString();
             if (ip.StartsWith("IP_ADDRESS_START_HERE"))
             {
-                global = CurlNative.Init();
                 easy = CurlNative.Easy.Init();
 
-                try
-                {
-                    CurlNative.Easy.SetOpt(easy, CURLoption.URL, $"https://{ip}/generate_204");
-                    CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYPEER, 0);
-                    CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYHOST, 0);
-                    var stream = new MemoryStream();
-                    CurlNative.Easy.SetOpt(easy, CURLoption.WRITEFUNCTION, (data, size, nmemb, user) =>
-                    {
-                        var length = (int)size * (int)nmemb;
-                        var buffer = new byte[length];
-                        Marshal.Copy(data, buffer, 0, length);
-                        stream.Write(buffer, 0, length);
-                        return (UIntPtr)length;
-                    });
+	            CurlNative.Easy.SetOpt(easy, CURLoption.URL, $"https://{ip}/generate_204");
+	            CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYPEER, 0);
+	            CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYHOST, 0);
 
-                    var result = CurlNative.Easy.Perform(easy);
-                    if (result == CURLcode.OK) internalIp = IPAddress.Parse(ip);
-                }
-                finally
-                {
-                    easy.Dispose();
-                }
-            }
+	            result = Dispatcher.UIThread.Invoke(() =>
+	            {
+		            return App.HttpHelper.HttpGet(easy);
+	            });
+
+	            if (result.response == CURLcode.OK) internalIp = IPAddress.Parse(ip);
+			}
         }
 
         return internalIp ?? IPAddress.Parse(serverIp);

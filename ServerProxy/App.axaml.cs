@@ -20,6 +20,7 @@ namespace ServerProxy;
 public class App : Application
 {
     private static MixProtocolServer _mixProtocolServer;
+    public static cURLHelper HttpHelper;
     public static Receiver BroadcastReceiver;
     public static ILoggerFactory AppLoggerFactory;
     public static CancellationTokenSource ProxyTokenSource = new();
@@ -40,7 +41,7 @@ public class App : Application
             DataContext = new AppViewModel(ActualThemeVariant);
             ActualThemeVariantChanged += (s, e) => (DataContext as AppViewModel).RenderIcon(ActualThemeVariant);
 
-            if ((DataContext as AppViewModel).ShowDebugConsoleOnStart) DebugConsole.AllocConsole();
+            if ((DataContext as AppViewModel).ShowDebugConsoleOnStart && OperatingSystem.IsWindows()) DebugConsole.AllocConsole();
 
             if (Program.MutexAvailability)
             {
@@ -52,19 +53,22 @@ public class App : Application
                 // Install Certificate
                 CertificateUtil.Install();
 
+                // Initialize Http Helper
+                HttpHelper = new cURLHelper();
+
                 // Register Broadcast Receiver
                 BroadcastReceiver = new Receiver(new Uri($"https://{config.ServerIp}/"));
-                _ = Task.Run(BroadcastReceiver.ReceiveBroadcastAsync);
+                _ = Task.Run(BroadcastReceiver.ReceiveBroadcastAsync).ConfigureAwait(false);
 
                 // Start Proxy
                 _mixProtocolServer = new MixProtocolServer(config.ServerPort, config.ListeningPort);
-                _ = Task.Run(_mixProtocolServer.StartAsync, ProxyTokenSource.Token);
+                _ = Task.Run(_mixProtocolServer.StartAsync, ProxyTokenSource.Token).ConfigureAwait(false);
 
                 // Check for update
                 if (config.CheckUpdate)
                 {
                     UpdaterInstance = new Updater(config.BaseUpdateAddr);
-                    _ = Task.Run(UpdaterInstance.CheckUpdate, UpdaterTokenSource.Token);
+                    _ = Task.Run(UpdaterInstance.CheckUpdate, UpdaterTokenSource.Token).ConfigureAwait(false);
                 }
             }
         }

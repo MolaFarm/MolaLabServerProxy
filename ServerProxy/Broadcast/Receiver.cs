@@ -169,33 +169,15 @@ public class Receiver(Uri baseaddr)
 
     private string? HttpGet(string url)
     {
-        var global = CurlNative.Init();
         var easy = CurlNative.Easy.Init();
-        string? resp = null;
 
-        try
-        {
-            CurlNative.Easy.SetOpt(easy, CURLoption.URL, url);
-            CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYPEER, 0);
-            CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYHOST, 0);
-            var stream = new MemoryStream();
-            CurlNative.Easy.SetOpt(easy, CURLoption.WRITEFUNCTION, (data, size, nmemb, user) =>
-            {
-                var length = (int)size * (int)nmemb;
-                var buffer = new byte[length];
-                Marshal.Copy(data, buffer, 0, length);
-                stream.Write(buffer, 0, length);
-                return (UIntPtr)length;
-            });
-
-            var result = CurlNative.Easy.Perform(easy);
-            resp = Encoding.UTF8.GetString(stream.ToArray());
-        }
-        finally
-        {
-            easy.Dispose();
-        }
-
-        return resp;
+	    CurlNative.Easy.SetOpt(easy, CURLoption.URL, url);
+	    CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYPEER, 0);
+	    CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYHOST, 0);
+	    var result = Dispatcher.UIThread.Invoke(() =>
+	    {
+		    return App.HttpHelper.HttpGet(easy);
+	    });
+	    return result.data;
     }
 }
