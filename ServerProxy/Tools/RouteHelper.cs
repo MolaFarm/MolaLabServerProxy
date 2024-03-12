@@ -1,8 +1,5 @@
 ﻿using System;
-using System.IO;
 using System.Net;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia;
@@ -28,18 +25,13 @@ public class RouteHelper
             Dispatcher.UIThread.Invoke(() => (Application.Current.DataContext as AppViewModel).AppConfig.ServerIp);
         var easy = CurlNative.Easy.Init();
 
-	    CurlNative.Easy.SetOpt(easy, CURLoption.URL, $"https://{serverIp}/dns-query?name=panel.labserver.internal");
-	    CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYPEER, 0);
-	    CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYHOST, 0);
-	    var result = Dispatcher.UIThread.Invoke(() =>
-	    {
-		    return App.HttpHelper.HttpGet(easy);
-	    });
+        CurlNative.Easy.SetOpt(easy, CURLoption.URL, $"https://{serverIp}/dns-query?name=panel.labserver.internal");
+        CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYPEER, 0);
+        CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYHOST, 0);
+        var result = Dispatcher.UIThread.Invoke(() => { return App.HttpHelper.HttpGet(easy); });
 
-	    if (result.response != CURLcode.OK)
-	    {
-		    throw new Exception($"Failed to get available IP address: {result.response}");
-	    }
+        if (result.response != CURLcode.OK)
+            throw new Exception($"Failed to get available IP address: {result.response}");
 
         using var doc = JsonDocument.Parse(result.data);
         IPAddress? internalIp = null;
@@ -50,17 +42,14 @@ public class RouteHelper
             {
                 easy = CurlNative.Easy.Init();
 
-	            CurlNative.Easy.SetOpt(easy, CURLoption.URL, $"https://{ip}/generate_204");
-	            CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYPEER, 0);
-	            CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYHOST, 0);
+                CurlNative.Easy.SetOpt(easy, CURLoption.URL, $"https://{ip}/generate_204");
+                CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYPEER, 0);
+                CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYHOST, 0);
 
-	            result = Dispatcher.UIThread.Invoke(() =>
-	            {
-		            return App.HttpHelper.HttpGet(easy);
-	            });
+                result = Dispatcher.UIThread.Invoke(() => { return App.HttpHelper.HttpGet(easy); });
 
-	            if (result.response == CURLcode.OK) internalIp = IPAddress.Parse(ip);
-			}
+                if (result.response == CURLcode.OK) internalIp = IPAddress.Parse(ip);
+            }
         }
 
         return internalIp ?? IPAddress.Parse(serverIp);

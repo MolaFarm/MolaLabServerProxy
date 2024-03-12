@@ -41,7 +41,8 @@ public class App : Application
             DataContext = new AppViewModel(ActualThemeVariant);
             ActualThemeVariantChanged += (s, e) => (DataContext as AppViewModel).RenderIcon(ActualThemeVariant);
 
-            if ((DataContext as AppViewModel).ShowDebugConsoleOnStart && OperatingSystem.IsWindows()) DebugConsole.AllocConsole();
+            if ((DataContext as AppViewModel).ShowDebugConsoleOnStart && OperatingSystem.IsWindows())
+                DebugConsole.AllocConsole();
 
             if (Program.MutexAvailability)
             {
@@ -65,7 +66,7 @@ public class App : Application
                 _ = Task.Run(_mixProtocolServer.StartAsync, ProxyTokenSource.Token).ConfigureAwait(false);
 
                 // Check for update
-                if (config.CheckUpdate)
+                if (config.CheckUpdate && OperatingSystem.IsWindows())
                 {
                     UpdaterInstance = new Updater(config.BaseUpdateAddr);
                     _ = Task.Run(UpdaterInstance.CheckUpdate, UpdaterTokenSource.Token).ConfigureAwait(false);

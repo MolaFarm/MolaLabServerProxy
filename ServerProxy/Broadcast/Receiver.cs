@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Globalization;
-using System.IO;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,26 +18,26 @@ namespace ServerProxy.Broadcast;
 /// </summary>
 public class Receiver(Uri baseaddr)
 {
-	/// <summary>
-	///     Gets or sets the current broadcast time.
-	/// </summary>
-	public DateTime CurrentBroadCastTime = DateTime.MinValue;
+    /// <summary>
+    ///     Gets or sets the current broadcast time.
+    /// </summary>
+    public DateTime CurrentBroadCastTime = DateTime.MinValue;
 
-	/// <summary>
-	///     Gets or sets a manual reset event to signal when a broadcast is received.
-	/// </summary>
-	public ManualResetEventSlim IsReceiveOnce = new(false);
+    /// <summary>
+    ///     Gets or sets a manual reset event to signal when a broadcast is received.
+    /// </summary>
+    public ManualResetEventSlim IsReceiveOnce = new(false);
 
-	/// <summary>
-	///     Gets or sets the latest broadcast message.
-	/// </summary>
-	public BroadCastMessage? Message;
+    /// <summary>
+    ///     Gets or sets the latest broadcast message.
+    /// </summary>
+    public BroadCastMessage? Message;
 
-	/// <summary>
-	///     Asynchronously receives broadcast messages from the server.
-	/// </summary>
-	/// <returns>A task representing the asynchronous operation.</returns>
-	public async Task ReceiveBroadcastAsync()
+    /// <summary>
+    ///     Asynchronously receives broadcast messages from the server.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public async Task ReceiveBroadcastAsync()
     {
         // Logger for logging broadcast-related events.
         var logger = App.AppLoggerFactory.CreateLogger<Receiver>();
@@ -151,11 +148,11 @@ public class Receiver(Uri baseaddr)
         }
     }
 
-	/// <summary>
-	///     Asynchronously retrieves the broadcast message from the server.
-	/// </summary>
-	/// <returns>A task representing the asynchronous operation.</returns>
-	private async Task<BroadCastMessage?> GetBroadCastMessage()
+    /// <summary>
+    ///     Asynchronously retrieves the broadcast message from the server.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private async Task<BroadCastMessage?> GetBroadCastMessage()
     {
         const string uri = "broadcast/message";
 
@@ -171,13 +168,10 @@ public class Receiver(Uri baseaddr)
     {
         var easy = CurlNative.Easy.Init();
 
-	    CurlNative.Easy.SetOpt(easy, CURLoption.URL, url);
-	    CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYPEER, 0);
-	    CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYHOST, 0);
-	    var result = Dispatcher.UIThread.Invoke(() =>
-	    {
-		    return App.HttpHelper.HttpGet(easy);
-	    });
-	    return result.data;
+        CurlNative.Easy.SetOpt(easy, CURLoption.URL, url);
+        CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYPEER, 0);
+        CurlNative.Easy.SetOpt(easy, CURLoption.SSL_VERIFYHOST, 0);
+        var result = Dispatcher.UIThread.Invoke(() => { return App.HttpHelper.HttpGet(easy); });
+        return result.data;
     }
 }

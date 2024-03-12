@@ -1,4 +1,7 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using MsBox.Avalonia;
@@ -31,8 +34,32 @@ internal static class MessageBox
 	public static ButtonResult? Show(string title, string message, ButtonEnum button = ButtonEnum.Ok,
         Icon icon = Icon.None)
     {
-        var screenWidth = GetSystemMetrics(0);
-        var screenHeight = GetSystemMetrics(1);
+        var screenWidth = 0;
+        var screenHeight = 0;
+
+        if (OperatingSystem.IsWindows())
+        {
+            screenWidth = GetSystemMetrics(0);
+            screenHeight = GetSystemMetrics(1);
+        }
+
+        if (OperatingSystem.IsLinux())
+        {
+            // Use xrandr to get size of screen located at offset (0,0).
+            var p = new Process();
+            p.StartInfo.UseShellExecute = false;
+            p.StartInfo.RedirectStandardOutput = true;
+            p.StartInfo.FileName = "xrandr";
+            p.Start();
+            var output = p.StandardOutput.ReadToEnd();
+            p.WaitForExit();
+            var match = Regex.Match(output, @"(\d+)x(\d+)\+0\+0");
+            var w = match.Groups[1].Value;
+            var h = match.Groups[2].Value;
+            screenWidth = int.Parse(w);
+            screenHeight = int.Parse(h);
+        }
+
         return Dispatcher.UIThread.Invoke(() =>
         {
             var box = MessageBoxManager

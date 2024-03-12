@@ -14,6 +14,8 @@ internal static class CertificateUtil
     /// </summary>
     public static void Install()
     {
+        if (!OperatingSystem.IsWindows()) return;
+
         X509Store store = new(StoreName.Root, StoreLocation.LocalMachine);
         const string thumbprint = "512cb359732dd45aa6991a795d58d4b3167441d7";
         var rootCa =

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
         <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
@@ -62,23 +62,23 @@
         </None>
     </ItemGroup>
 
-    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Target Name="PostBuild" Condition="'$(OS)' == 'Windows_NT'" AfterTargets="PostBuildEvent">
         <Exec Command="xcopy &quot;$(ProjectDir)*Updater.*&quot; &quot;$(TargetDir)&quot; /Y"/>
     </Target>
 
-    <Target Name="BuildCopyMsQuic" AfterTargets="Build">
+    <Target Name="BuildCopyMsQuic" Condition="'$(OS)' == 'Windows_NT'" AfterTargets="Build">
         <Copy SourceFiles="$(_MsQuicLib)" DestinationFolder="$(OutDir)"/>
     </Target>
 
-    <Target Name="BuildCopyLibCurl" AfterTargets="Build">
+    <Target Name="BuildCopyLibCurl" Condition="'$(OS)' == 'Windows_NT'" AfterTargets="Build">
         <Copy SourceFiles="$(_LibCurl)" DestinationFolder="$(OutDir)"/>
     </Target>
 
-    <Target Name="PublishCopyMsQuic" AfterTargets="Publish">
+    <Target Name="PublishCopyMsQuic" Condition="'$(OS)' == 'Windows_NT'" AfterTargets="Publish">
         <Copy SourceFiles="$(_MsQuicLib)" DestinationFolder="$(PublishDir)"/>
     </Target>
 
-    <Target Name="PublishCopyLibCurl" AfterTargets="Publish">
+    <Target Name="PublishCopyLibCurl" Condition="'$(OS)' == 'Windows_NT'" AfterTargets="Publish">
         <Copy SourceFiles="$(_LibCurl)" DestinationFolder="$(PublishDir)"/>
     </Target>
 </Project>

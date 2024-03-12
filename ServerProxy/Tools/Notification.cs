@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace ServerProxy.Tools;
@@ -27,6 +28,6 @@ internal static class Notification
         var appnameBytes = Encoding.UTF8.GetBytes("ServerProxy");
         var titleBytes = Encoding.UTF8.GetBytes(title);
         var messageBytes = Encoding.UTF8.GetBytes(message);
-        Show(appnameBytes, titleBytes, messageBytes);
+        if (OperatingSystem.IsWindows()) Show(appnameBytes, titleBytes, messageBytes);
     }
 }
