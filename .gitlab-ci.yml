@@ -25,6 +25,23 @@ build-server-linux-x64:
     paths:
       - Server/publish
 
+build-linux-x64:
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  stage: build
+  before_script:
+    - git fetch --unshallow --all
+  script:
+    - cd ServerProxy
+    - dotnet publish -r linux-x64 -c Release -o ./linux-x64
+    - rm ./linux-x64/*.pdb
+    - rm ./linux-x64/*.json
+    - rm ./linux-x64/*.xml
+    - echo $CI_JOB_ID > JOBIDLINUX64
+  artifacts:
+    paths:
+      - ServerProxy/linux-x64
+      - ServerProxy/JOBIDLINUX64
+
 build-win-x64:
   stage: build
   tags:
