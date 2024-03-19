@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using System.IO;
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Avalonia;
@@ -9,6 +10,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Styling;
 using ReactiveUI;
+using ServerProxy.Tools;
 
 namespace ServerProxy.ViewModels;
 
@@ -43,6 +45,7 @@ public class AppViewModel : ViewModelBase, INotifyPropertyChanged
     public Bitmap? CheckUpdateCheckIcon => _appConfig.CheckUpdate ? CheckIcon : null;
     public Bitmap? ShowMessageBoxOnStartCheckIcon => _appConfig.ShowMessageBoxOnStart ? CheckIcon : null;
     public Bitmap? ShowDebugConsoleOnStartCheckIcon => _appConfig.ShowDebugConsoleOnStart ? CheckIcon : null;
+    public Bitmap? EnableSystemProxyCheckIcon => _appConfig.EnableSystemProxy ? CheckIcon : null;
 
     public bool CheckUpdate
     {
@@ -74,6 +77,30 @@ public class AppViewModel : ViewModelBase, INotifyPropertyChanged
             _appConfig.ShowDebugConsoleOnStart = value;
             this.RaisePropertyChanged();
             NotifyPropertyChanged(nameof(ShowDebugConsoleOnStartCheckIcon));
+        }
+    }
+
+    public bool EnableSystemProxy
+    {
+        get => _appConfig.EnableSystemProxy;
+        set
+        {
+            int fails = 0;
+            if (value == true)
+            {
+                if (!SysProxyHelper.TrySetSysProxy($"127.0.0.1:{_appConfig.ListeningPort}")) {
+                    fails++;
+                }
+            } else {
+                SysProxyHelper.UnsetSysProxy();
+            }
+
+            if(fails < 1)
+            {
+                _appConfig.EnableSystemProxy = value;
+                this.RaisePropertyChanged();
+                NotifyPropertyChanged(nameof(EnableSystemProxyCheckIcon));
+            }
         }
     }
 
@@ -134,6 +161,7 @@ public class AppViewModel : ViewModelBase, INotifyPropertyChanged
         NotifyPropertyChanged(nameof(CheckUpdateCheckIcon));
         NotifyPropertyChanged(nameof(ShowMessageBoxOnStartCheckIcon));
         NotifyPropertyChanged(nameof(ShowDebugConsoleOnStartCheckIcon));
+        NotifyPropertyChanged(nameof(EnableSystemProxyCheckIcon));
     }
 
     // This method is called by the Set accessor of each property.  

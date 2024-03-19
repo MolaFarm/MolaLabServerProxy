@@ -26,6 +26,11 @@
                       ToolTipText="{Binding StatusMessage, StringFormat='代理服务&#x0a;服务状态：{0}', Mode=OneWay}">
                 <TrayIcon.Menu>
                     <NativeMenu>
+						<controls:CustomMenuItem Name="EnableSystemProxy" Header="启用系统代理"
+                                                         Icon="{Binding EnableSystemProxyCheckIcon}"
+                                                         ToggleType="CheckBox"
+                                                         IsChecked="{Binding EnableSystemProxy}"
+                                                         Click="NativeMenuItem_OnChecked" />
                         <NativeMenuItem Header="设置">
                             <NativeMenu>
                                 <controls:CustomMenuItem Name="CheckUpdate" Header="启动时检查更新"

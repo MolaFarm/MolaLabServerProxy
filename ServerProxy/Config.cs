@@ -9,5 +9,6 @@ public class Config
     public string BaseUpdateAddr { get; set; } = "https://git.labserver.internal";
     public bool CheckUpdate { get; set; } = true;
     public bool ShowMessageBoxOnStart { get; set; } = true;
-    public bool ShowDebugConsoleOnStart { get; set; } = false;
+    public bool ShowDebugConsoleOnStart { get; set; } = true;
+    public bool EnableSystemProxy { get; set; } = false;
 }

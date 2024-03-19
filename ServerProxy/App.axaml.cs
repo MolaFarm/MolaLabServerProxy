@@ -9,6 +9,8 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.Logging;
+using MsBox.Avalonia.Enums;
+using ReactiveUI;
 using ServerProxy.Broadcast;
 using ServerProxy.Controls;
 using ServerProxy.Proxy;
@@ -71,6 +73,16 @@ public class App : Application
                     UpdaterInstance = new Updater(config.BaseUpdateAddr);
                     _ = Task.Run(UpdaterInstance.CheckUpdate, UpdaterTokenSource.Token).ConfigureAwait(false);
                 }
+
+                if (config.EnableSystemProxy && OperatingSystem.IsWindows())
+                {
+                    bool success = SysProxyHelper.TrySetSysProxy($"127.0.0.1:{config.ListeningPort}");
+                    if (!success)
+                    {
+                        (DataContext as AppViewModel).EnableSystemProxy = false;
+                        WriteConfig();
+                    }
+                }
             }
         }
 
@@ -95,6 +107,7 @@ public class App : Application
     {
         ProxyTokenSource.Cancel();
         UpdaterTokenSource.Cancel();
+        SysProxyHelper.UnsetSysProxy();
         Environment.Exit(0);
     }
 
@@ -116,6 +129,14 @@ public class App : Application
 
         switch (item.Name)
         {
+            case "EnableSystemProxy":
+                if (!OperatingSystem.IsWindows()){
+                    var config = (DataContext as AppViewModel).AppConfig;
+                    MessageBox.Show("警告", $"在除Windows平台以外的设置代理功能还未实现，\n请手动设置系统代理为 http://127.0.0.1:{config.ListeningPort} 以保证正常访问", ButtonEnum.Ok, Icon.Error);
+                    break;
+                }
+                (DataContext as AppViewModel).EnableSystemProxy = !(DataContext as AppViewModel).EnableSystemProxy;
+                break;
             case "CheckUpdate":
                 (DataContext as AppViewModel).CheckUpdate = !(DataContext as AppViewModel).CheckUpdate;
                 break;
