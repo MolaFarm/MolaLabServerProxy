@@ -26,7 +26,7 @@ public class Updater
         _baseAddress = baseAddress;
     }
 
-    public async void CheckUpdate()
+    public void CheckUpdate()
     {
         try
         {

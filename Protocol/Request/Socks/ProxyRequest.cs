@@ -80,7 +80,7 @@ public class ProxyRequest
                 request.Hostname = Encoding.UTF8.GetString(bytes, 5, bytes[4]);
                 if (request.Hostname.EndsWith("labserver.internal"))
                 {
-                    request.DestinationAddress = IPAddress.Parse("IP_ADDRESS_START_HERE.51");
+                    request.DestinationAddress = Init.ServerIp;
                 }
                 else
                 {

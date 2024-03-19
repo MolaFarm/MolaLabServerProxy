@@ -51,7 +51,8 @@ internal class MixProtocolServer
     public async Task StartAsync()
     {
         var preferIp = await RouteHelper.GetAvailableIP();
-        _connectionOptions = new QuicClientConnectionOptions
+        Protocol.Init.SetServer(preferIp);
+		_connectionOptions = new QuicClientConnectionOptions
         {
             RemoteEndPoint = new IPEndPoint(preferIp, _serverPort),
             DefaultStreamErrorCode = 0x0A,
