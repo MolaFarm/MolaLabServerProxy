@@ -37,18 +37,24 @@ internal class SysProxyHelper
                 if (server != ProxyServer)
                 {
                     MessageBoxHelper($"已有软件接管系统代理，代理服务器地址为 {res.Item2} 。请先退出其他软件以避免未知问题发生");
+                } else
+                {
+                    // Proxy already enable and server is our server, may caused by unexcepted exiting, ignore it
+                    return true;
                 }
-                //Notification.Show("proxyserver", "test!");
                 fails++;
             }
         } else{
             fails++;
         }
 
-        if ( fails < 1 )
+        if (fails < 1)
         {
             SysProxyHelper.SetSysProxy(ProxyServer);
             return true;
+        } else
+        {
+            Notification.Show("ProxyHelper", "在尝试设置系统代理时发生了错误，代理不会被设置");
         }
         return false;
     }
@@ -68,7 +74,7 @@ internal class SysProxyHelper
         if ((int)registry.GetValue("ProxyEnable", 0) == 0)
             MessageBoxHelper("Unable to enable the proxy.");
         //else
-        //Notification.Show("提示", $"The proxy has been turned on. ProxyServer: {ProxyServer}");
+        Notification.Show("ProxyHelper", $"ProxyServer: {ProxyServer} 已被设置为系统代理");
         registry.Close();
         _ = InternetSetOption
         (IntPtr.Zero, INTERNET_OPTION_SETTINGS_CHANGED, IntPtr.Zero, 0);
@@ -107,8 +113,8 @@ internal class SysProxyHelper
         registry.SetValue("ProxyServer", 0);
         if ((int)registry.GetValue("ProxyEnable", 1) == 1)
             MessageBoxHelper("Unable to disable the proxy.");
-        //else
-        //    MessageBoxHelper("success to unset proxy.");
+        else
+            Notification.Show("ProxyHelper","成功取消设置系统代理");
         registry.Close();
         _ = InternetSetOption
         (IntPtr.Zero, INTERNET_OPTION_SETTINGS_CHANGED, IntPtr.Zero, 0);
