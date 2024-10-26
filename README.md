@@ -16,16 +16,9 @@
 - **ToastNotification**：Windows 系统消息推送模块
 - **Updater**：客户端更新程序
 
-## TODO
-- Protocol
-  - [ ] 完善心跳数据包机制[在连接繁忙时（通常为大规模上传下载操作）可能会出现心跳数据包传输失败，导致连接中断]
-  - [ ] 添加 UDP 数据包转发及 Bind 请求转发的支持
-- ServerProxy
-  - [ ] 添加客户端设置系统代理的功能
-  - [ ] 部分功能需要使用管理员权限[如证书安装]，但这些功能并非程序工作所需要持续运行的，需要添加按需申请管理员权限的能力
-  - [ ] 根据巨硬文档，**QUIC**协议不支持 Windows 10，因而项目中引入了 OpenSSL 实现（Microsoft QUIC），需要在 Windows 10 下测试程序是否能正常工作
-- Server
-  - [ ] 编写 **SystemD Unit** 并将程序部署
+## Note
+* 使用前需要将代码中的所有 `IP_ADDRESS_START_HERE` 占位符替换为实际**IP**部分，并在 `ServerProxy/Config.cs` 中设置默认 `IP`
+* 若要使用 `Updater`，需要将 `ServerProxy/Tools/Updater.cs` 中的 `GITLAB_ACCESS_TOKEN_HERE` 占位符替换为实际**GitLab Access Token**
 
 ## 许可协议
 本程序在 `MIT` 协议下许可发布
